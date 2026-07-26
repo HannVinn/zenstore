@@ -24,7 +24,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // FUNGSI BUAT PESANAN
+        // FUNGSI UTAMA BUAT PESANAN
         window.sendOrderToAdminWeb = async function() {
             const paymentType = document.getElementById('payment-select').value;
 
@@ -71,7 +71,7 @@
             } else {
                 const standardUser = document.getElementById('user-data-standard').value;
                 if(!standardUser) {
-                    alert("Harap masukkan Username / User ID Game!");
+                    alert("Harap masukkan Data Akun / Username / Email / User ID!");
                     return;
                 }
                 finalUserData = standardUser;
@@ -231,7 +231,6 @@
         .order-box label { font-size: 12px; color: #aaa; display: block; margin-top: 15px; }
         .order-box input, .order-box select { width: 100%; padding: 12px; margin-top: 6px; background: #0f1117; border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 8px; outline: none; font-size: 13px; }
 
-        /* FORM KHUSUS GAMEPASS */
         .roblox-gamepass-form {
             display: none;
             background: #0f1117;
@@ -326,20 +325,20 @@
         <div id="tab-mlbb" class="tab-content active">
             <div class="section-title">Special Promo MLBB 🌟</div>
             <div class="grid-options">
-                <div class="option-card" onclick="selectProduct('Weekly Pass (1x) MLBB', '27.500', false, false, this)">
+                <div class="option-card" onclick="selectProduct('Weekly Pass (1x) MLBB', '27.500', event)">
                     <span class="badge">BEST</span>
                     <div class="option-name">Weekly Pass (1x)</div>
                     <div class="option-price">Rp 27.500</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('Weekly Pass (2x) MLBB', '55.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('Weekly Pass (2x) MLBB', '55.000', event)">
                     <div class="option-name">Weekly Pass (2x)</div>
                     <div class="option-price">Rp 55.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('Weekly Pass (3x) MLBB', '82.500', false, false, this)">
+                <div class="option-card" onclick="selectProduct('Weekly Pass (3x) MLBB', '82.500', event)">
                     <div class="option-name">Weekly Pass (3x)</div>
                     <div class="option-price">Rp 82.500</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('Twilight Pass MLBB', '145.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('Twilight Pass MLBB', '145.000', event)">
                     <div class="option-name">Twilight Pass</div>
                     <div class="option-price">Rp 145.000</div>
                 </div>
@@ -347,43 +346,43 @@
 
             <div class="section-title">Nominal Diamond MLBB 💎 (Kecil - Besar)</div>
             <div class="grid-options">
-                <div class="option-card" onclick="selectProduct('5 Diamonds MLBB', '1.500', false, false, this)">
+                <div class="option-card" onclick="selectProduct('5 Diamonds MLBB', '1.500', event)">
                     <div class="option-name">5 Diamonds</div>
                     <div class="option-price">Rp 1.500</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('12 Diamonds MLBB', '3.800', false, false, this)">
+                <div class="option-card" onclick="selectProduct('12 Diamonds MLBB', '3.800', event)">
                     <div class="option-name">12 Diamonds</div>
                     <div class="option-price">Rp 3.800</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('85 Diamonds MLBB', '24.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('85 Diamonds MLBB', '24.000', event)">
                     <div class="option-name">85 Diamonds</div>
                     <div class="option-price">Rp 24.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('170 Diamonds MLBB', '48.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('170 Diamonds MLBB', '48.000', event)">
                     <div class="option-name">170 Diamonds</div>
                     <div class="option-price">Rp 48.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('240 Diamonds MLBB', '67.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('240 Diamonds MLBB', '67.000', event)">
                     <div class="option-name">240 Diamonds</div>
                     <div class="option-price">Rp 67.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('296 Diamonds MLBB', '84.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('296 Diamonds MLBB', '84.000', event)">
                     <div class="option-name">296 Diamonds</div>
                     <div class="option-price">Rp 84.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('408 Diamonds MLBB', '115.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('408 Diamonds MLBB', '115.000', event)">
                     <div class="option-name">408 Diamonds</div>
                     <div class="option-price">Rp 115.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('568 Diamonds MLBB', '160.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('568 Diamonds MLBB', '160.000', event)">
                     <div class="option-name">568 Diamonds</div>
                     <div class="option-price">Rp 160.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('875 Diamonds MLBB', '245.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('875 Diamonds MLBB', '245.000', event)">
                     <div class="option-name">875 Diamonds</div>
                     <div class="option-price">Rp 245.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('2010 Diamonds MLBB', '550.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('2010 Diamonds MLBB', '550.000', event)">
                     <div class="option-name">2010 Diamonds</div>
                     <div class="option-price">Rp 550.000</div>
                 </div>
@@ -394,27 +393,27 @@
         <div id="tab-roblox" class="tab-content">
             <div class="section-title">Robux Via Gamepass 🎮 (Kecil - Besar)</div>
             <div class="grid-options">
-                <div class="option-card" onclick="selectProduct('80 Robux Via Gamepass', '12.000', true, false, this)">
+                <div class="option-card" onclick="selectProduct('80 Robux Via Gamepass', '12.000', event, 'gamepass')">
                     <div class="option-name">80 Robux Gamepass</div>
                     <div class="option-price">Rp 12.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('100 Robux Via Gamepass', '15.000', true, false, this)">
+                <div class="option-card" onclick="selectProduct('100 Robux Via Gamepass', '15.000', event, 'gamepass')">
                     <div class="option-name">100 Robux Gamepass</div>
                     <div class="option-price">Rp 15.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('200 Robux Via Gamepass', '29.000', true, false, this)">
+                <div class="option-card" onclick="selectProduct('200 Robux Via Gamepass', '29.000', event, 'gamepass')">
                     <div class="option-name">200 Robux Gamepass</div>
                     <div class="option-price">Rp 29.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('400 Robux Via Gamepass', '58.000', true, false, this)">
+                <div class="option-card" onclick="selectProduct('400 Robux Via Gamepass', '58.000', event, 'gamepass')">
                     <div class="option-name">400 Robux Gamepass</div>
                     <div class="option-price">Rp 58.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('800 Robux Via Gamepass', '115.000', true, false, this)">
+                <div class="option-card" onclick="selectProduct('800 Robux Via Gamepass', '115.000', event, 'gamepass')">
                     <div class="option-name">800 Robux Gamepass</div>
                     <div class="option-price">Rp 115.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('1000 Robux Via Gamepass', '140.000', true, false, this)">
+                <div class="option-card" onclick="selectProduct('1000 Robux Via Gamepass', '140.000', event, 'gamepass')">
                     <div class="option-name">1000 Robux Gamepass</div>
                     <div class="option-price">Rp 140.000</div>
                 </div>
@@ -422,19 +421,19 @@
 
             <div class="section-title">Robux Via Group (Payout Instant) 👥</div>
             <div class="grid-options">
-                <div class="option-card" onclick="selectProduct('100 Robux Via Group', '16.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('100 Robux Via Group', '16.000', event)">
                     <div class="option-name">100 Robux Group</div>
                     <div class="option-price">Rp 16.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('250 Robux Via Group', '40.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('250 Robux Via Group', '40.000', event)">
                     <div class="option-name">250 Robux Group</div>
                     <div class="option-price">Rp 40.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('500 Robux Via Group', '79.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('500 Robux Via Group', '79.000', event)">
                     <div class="option-name">500 Robux Group</div>
                     <div class="option-price">Rp 79.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('1000 Robux Via Group', '155.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('1000 Robux Via Group', '155.000', event)">
                     <div class="option-name">1000 Robux Group</div>
                     <div class="option-price">Rp 155.000</div>
                 </div>
@@ -442,27 +441,27 @@
 
             <div class="section-title">Robux Via Login 🔑</div>
             <div class="grid-options">
-                <div class="option-card" onclick="selectProduct('100 Robux Via Login', '15.000', false, true, this)">
+                <div class="option-card" onclick="selectProduct('100 Robux Via Login', '15.000', event, 'login')">
                     <div class="option-name">100 Robux Login</div>
                     <div class="option-price">Rp 15.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('250 Robux Via Login', '37.000', false, true, this)">
+                <div class="option-card" onclick="selectProduct('250 Robux Via Login', '37.000', event, 'login')">
                     <div class="option-name">250 Robux Login</div>
                     <div class="option-price">Rp 37.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('500 Robux Via Login', '73.000', false, true, this)">
+                <div class="option-card" onclick="selectProduct('500 Robux Via Login', '73.000', event, 'login')">
                     <div class="option-name">500 Robux Login</div>
                     <div class="option-price">Rp 73.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('800 Robux Via Login', '110.000', false, true, this)">
+                <div class="option-card" onclick="selectProduct('800 Robux Via Login', '110.000', event, 'login')">
                     <div class="option-name">800 Robux Login</div>
                     <div class="option-price">Rp 110.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('1000 Robux Via Login', '135.000', false, true, this)">
+                <div class="option-card" onclick="selectProduct('1000 Robux Via Login', '135.000', event, 'login')">
                     <div class="option-name">1000 Robux Login</div>
                     <div class="option-price">Rp 135.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('2000 Robux Via Login', '265.000', false, true, this)">
+                <div class="option-card" onclick="selectProduct('2000 Robux Via Login', '265.000', event, 'login')">
                     <div class="option-name">2000 Robux Login</div>
                     <div class="option-price">Rp 265.000</div>
                 </div>
@@ -473,31 +472,31 @@
         <div id="tab-other-games" class="tab-content">
             <div class="section-title">Free Fire 💥 (Kecil - Besar)</div>
             <div class="grid-options">
-                <div class="option-card" onclick="selectProduct('50 Diamonds Free Fire', '8.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('50 Diamonds Free Fire', '8.000', event)">
                     <div class="option-name">50 DM Free Fire</div>
                     <div class="option-price">Rp 8.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('70 Diamonds Free Fire', '10.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('70 Diamonds Free Fire', '10.000', event)">
                     <div class="option-name">70 DM Free Fire</div>
                     <div class="option-price">Rp 10.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('140 Diamonds Free Fire', '19.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('140 Diamonds Free Fire', '19.000', event)">
                     <div class="option-name">140 DM Free Fire</div>
                     <div class="option-price">Rp 19.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('355 Diamonds Free Fire', '47.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('355 Diamonds Free Fire', '47.000', event)">
                     <div class="option-name">355 DM Free Fire</div>
                     <div class="option-price">Rp 47.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('720 Diamonds Free Fire', '93.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('720 Diamonds Free Fire', '93.000', event)">
                     <div class="option-name">720 DM Free Fire</div>
                     <div class="option-price">Rp 93.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('Membership Mingguan FF', '30.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('Membership Mingguan FF', '30.000', event)">
                     <div class="option-name">Member Mingguan</div>
                     <div class="option-price">Rp 30.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('Membership Bulanan FF', '120.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('Membership Bulanan FF', '120.000', event)">
                     <div class="option-name">Member Bulanan</div>
                     <div class="option-price">Rp 120.000</div>
                 </div>
@@ -505,19 +504,19 @@
 
             <div class="section-title">PUBG Mobile 🔫</div>
             <div class="grid-options">
-                <div class="option-card" onclick="selectProduct('60 UC PUBG', '14.500', false, false, this)">
+                <div class="option-card" onclick="selectProduct('60 UC PUBG', '14.500', event)">
                     <div class="option-name">60 UC PUBG</div>
                     <div class="option-price">Rp 14.500</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('120 UC PUBG', '29.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('120 UC PUBG', '29.000', event)">
                     <div class="option-name">120 UC PUBG</div>
                     <div class="option-price">Rp 29.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('325 UC PUBG', '73.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('325 UC PUBG', '73.000', event)">
                     <div class="option-name">325 UC PUBG</div>
                     <div class="option-price">Rp 73.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('660 UC PUBG', '145.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('660 UC PUBG', '145.000', event)">
                     <div class="option-name">660 UC PUBG</div>
                     <div class="option-price">Rp 145.000</div>
                 </div>
@@ -525,15 +524,15 @@
 
             <div class="section-title">Genshin Impact ❄️</div>
             <div class="grid-options">
-                <div class="option-card" onclick="selectProduct('60 Genesis Crystal', '16.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('60 Genesis Crystal', '16.000', event)">
                     <div class="option-name">60 Genesis Crystal</div>
                     <div class="option-price">Rp 16.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('300 Genesis Crystal', '78.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('300 Genesis Crystal', '78.000', event)">
                     <div class="option-name">300 Genesis Crystal</div>
                     <div class="option-price">Rp 78.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('Blessing Welkin Moon', '79.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('Blessing Welkin Moon', '79.000', event)">
                     <div class="option-name">Blessing Welkin</div>
                     <div class="option-price">Rp 79.000</div>
                 </div>
@@ -544,15 +543,15 @@
         <div id="tab-apps" class="tab-content">
             <div class="section-title">Spotify Premium 🎧</div>
             <div class="grid-options">
-                <div class="option-card" onclick="selectProduct('Spotify Premium 1 Bulan', '18.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('Spotify Premium 1 Bulan', '18.000', event)">
                     <div class="option-name">Spotify 1 Bulan</div>
                     <div class="option-price">Rp 18.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('Spotify Premium 2 Bulan', '32.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('Spotify Premium 2 Bulan', '32.000', event)">
                     <div class="option-name">Spotify 2 Bulan</div>
                     <div class="option-price">Rp 32.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('Spotify Premium 3 Bulan', '45.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('Spotify Premium 3 Bulan', '45.000', event)">
                     <div class="option-name">Spotify 3 Bulan</div>
                     <div class="option-price">Rp 45.000</div>
                 </div>
@@ -560,11 +559,11 @@
 
             <div class="section-title">Netflix Premium 🎬</div>
             <div class="grid-options">
-                <div class="option-card" onclick="selectProduct('Netflix 1 Bulan (Shared)', '25.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('Netflix 1 Bulan (Shared)', '25.000', event)">
                     <div class="option-name">1 Bulan (Shared)</div>
                     <div class="option-price">Rp 25.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('Netflix 1 Bulan (Private)', '115.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('Netflix 1 Bulan (Private)', '115.000', event)">
                     <div class="option-name">1 Bulan (Private)</div>
                     <div class="option-price">Rp 115.000</div>
                 </div>
@@ -572,11 +571,11 @@
 
             <div class="section-title">YouTube Premium 🔴</div>
             <div class="grid-options">
-                <div class="option-card" onclick="selectProduct('YouTube Premium 1 Bulan', '10.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('YouTube Premium 1 Bulan', '10.000', event)">
                     <div class="option-name">YouTube 1 Bulan</div>
                     <div class="option-price">Rp 10.000</div>
                 </div>
-                <div class="option-card" onclick="selectProduct('YouTube Premium 3 Bulan', '25.000', false, false, this)">
+                <div class="option-card" onclick="selectProduct('YouTube Premium 3 Bulan', '25.000', event)">
                     <div class="option-name">YouTube 3 Bulan</div>
                     <div class="option-price">Rp 25.000</div>
                 </div>
@@ -710,24 +709,23 @@
         window.isRobloxLogin = false;
         window.searchMode = "user";
 
-        function selectProduct(name, price, isGamepass, isRbxLogin, element) {
+        function selectProduct(name, price, event, type) {
             window.selectedItemName = name;
             window.selectedItemPrice = price;
-            window.isRobloxGamepass = isGamepass;
-            window.isRobloxLogin = isRbxLogin;
+            window.isRobloxGamepass = (type === 'gamepass');
+            window.isRobloxLogin = (type === 'login');
 
             const allCards = document.querySelectorAll('.option-card');
             allCards.forEach(card => card.classList.remove('selected'));
-            element.classList.add('selected');
+            event.currentTarget.classList.add('selected');
 
             document.getElementById('preview-box').innerHTML = `<strong>${name}</strong> — <span style="color:#00f2fe">Rp ${price}</span>`;
 
-            // Atur Form Mana yang Muncul
-            if(isGamepass) {
+            if(type === 'gamepass') {
                 document.getElementById('standard-form-box').style.display = 'none';
                 document.getElementById('roblox-gamepass-box').style.display = 'block';
                 document.getElementById('roblox-login-box').style.display = 'none';
-            } else if(isRbxLogin) {
+            } else if(type === 'login') {
                 document.getElementById('standard-form-box').style.display = 'none';
                 document.getElementById('roblox-gamepass-box').style.display = 'none';
                 document.getElementById('roblox-login-box').style.display = 'block';
