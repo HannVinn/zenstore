@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - ZenStore</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background: #0b0c10; color: #fff; }
+
+        /* Lock Screen Login */
+        #login-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100vh;
+            background: #0f1117;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        .login-card {
+            background: #161922;
+            padding: 30px 20px;
+            border-radius: 16px;
+            border: 1px solid #00f2fe;
+            text-align: center;
+            width: 90%;
+            max-width: 350px;
+        }
+
+        .login-card h3 { color: #00f2fe; margin-bottom: 5px; }
+        .login-card p { font-size: 11px; color: #aaa; margin-bottom: 15px; }
+
+        .login-card input {
+            width: 100%;
+            padding: 12px;
+            background: #0f1117;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 16px;
+            letter-spacing: 2px;
+            outline: none;
+            margin-bottom: 15px;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: #00f2fe;
+            color: #000;
+            font-weight: 700;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .btn-back-home {
+            display: inline-block;
+            color: #aaa;
+            font-size: 12px;
+            text-decoration: none;
+            margin-top: 10px;
+        }
+
+        /* Dashboard Admin Content */
+        #admin-content { display: none; padding: 20px; }
+        
+        header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 25px; 
+            padding-bottom: 15px; 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        h2 { color: #00f2fe; border-left: 4px solid #00f2fe; padding-left: 10px; font-size: 18px; }
+
+        .header-btns { display: flex; gap: 8px; }
+
+        /* Form Card Kelola Produk */
+        .card-box { 
+            background: #161922; 
+            border-radius: 12px; 
+            padding: 20px; 
+            border: 1px solid rgba(255,255,255,0.08); 
+            margin-bottom: 25px; 
+        }
+
+        .card-title { font-size: 14px; font-weight: 700; color: #00f2fe; margin-bottom: 12px; }
+
+        .form-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+            gap: 10px; 
+            margin-bottom: 15px; 
+        }
+
+        .form-grid input, .form-grid select { 
+            background: #0f1117; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            color: #fff; 
+            padding: 10px; 
+            border-radius: 8px; 
+            font-size: 12px; 
+            outline: none; 
+        }
+
+        .btn-add { 
+            background: #00f2fe; 
+            color: #000; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 8px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            font-size: 12px;
+        }
+
+        .table-container { 
+            overflow-x: auto; 
+            background: #161922; 
+            border-radius: 12px; 
+            border: 1px solid rgba(255,255,255,0.08); 
+            margin-bottom: 30px; 
+        }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+        th, td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; }
+        th { background: #1f2430; color: #00f2fe; font-weight: 600; }
+
+        .user-data-tag { background: #0f1117; padding: 4px 8px; border-radius: 6px; color: #00f2fe; border: 1px solid rgba(0,242,254,0.3); }
+        .btn-action { padding: 6px 12px; border-radius: 6px; border: none; font-size: 11px; font-weight: 600; cursor: pointer; }
+        .btn-success { background: #25d366; color: #000; }
+        .btn-danger { background: #ff0055; color: #fff; }
+        .btn-secondary { background: #333; color: #fff; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    </style>
+
+    <!-- SDK Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAfJWdd7oM17foLNMRoK2k",
+            authDomain: "zenstore-3f8ef.firebaseapp.com",
+            projectId: "zenstore-3f8ef",
+            storageBucket: "zenstore-3f8ef.appspot.com",
+            messagingSenderId: "487720475687",
+            appId: "1:487720475687:web:dae597df0",
+            measurementId: "G-RYTR9057M9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // CEK PIN RAHASIA ADMIN (020100)
+        window.checkPIN = function() {
+            const inputPIN = document.getElementById("pin-input").value;
+            const secretPIN = "020100"; 
+
+            if (inputPIN === secretPIN) {
+                document.getElementById("login-screen").style.display = "none";
+                document.getElementById("admin-content").style.display = "block";
+                loadAdminData();
+            } else {
+                alert("PIN Rahasia Salah! Akses Ditolak.");
+                document.getElementById("pin-input").value = "";
+            }
+        };
+
+        function loadAdminData() {
+            // 1. Memuat Pesanan Masuk
+            onSnapshot(collection(db, "orders"), (snapshot) => {
+                const tableBody = document.getElementById("order-list");
+                tableBody.innerHTML = "";
+
+                if(snapshot.empty) {
+                    tableBody.innerHTML = "<tr><td colspan='7' style='text-align:center; padding:15px; color:#888;'>Belum ada pesanan masuk.</td></tr>";
+                    return;
+                }
+
+                snapshot.forEach((docSnap) => {
+                    const item = docSnap.data();
+                    const statusColor = item.status === "Selesai" ? "#25d366" : "#ffcc00";
+
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td><b>${item.invoiceId}</b></td>
+                            <td>${item.product}</td>
+                            <td><span class="user-data-tag">${item.userData}</span></td>
+                            <td>${item.paymentMethod}</td>
+                            <td style="color:${statusColor}; font-weight:bold;">${item.status}</td>
+                            <td style="font-size:11px; color:#aaa;">${item.createdAt || '-'}</td>
+                            <td>
+                                <button onclick="updateStatus('${item.invoiceId}', 'Selesai')" class="btn-action btn-success">Selesai</button>
+                                <button onclick="deleteOrder('${item.invoiceId}')" class="btn-action btn-danger">Hapus</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+
+            // 2. Memuat Daftar Produk
+            onSnapshot(collection(db, "products"), (snapshot) => {
+                const productBody = document.getElementById("product-list");
+                productBody.innerHTML = "";
+
+                if(snapshot.empty) {
+                    productBody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:15px; color:#888;'>Belum ada produk kustom.</td></tr>";
+                    return;
+                }
+
+                snapshot.forEach((docSnap) => {
+                    const prod = docSnap.data();
+                    const id = docSnap.id;
+                    const diskonText = prod.discount > 0 ? `<span style="color:#ff0055; font-weight:bold;">${prod.discount}%</span>` : '0%';
+                    
+                    productBody.innerHTML += `
+                        <tr>
+                            <td><b>${prod.name}</b></td>
+                            <td>${prod.category}</td>
+                            <td>Rp ${Number(prod.price).toLocaleString('id-ID')}</td>
+                            <td>${diskonText}</td>
+                            <td>
+                                <button onclick="deleteProduct('${id}')" class="btn-action btn-danger">Hapus</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+        }
+
+        // FUNGSI TAMBAH PRODUK BARU & DISKON
+        window.saveProduct = async function() {
+            const name = document.getElementById("prod-name").value;
+            const category = document.getElementById("prod-category").value;
+            const price = document.getElementById("prod-price").value;
+            const discount = document.getElementById("prod-discount").value || 0;
+
+            if(!name || !price) {
+                alert("Harap isi Nama Produk dan Harga!");
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "products"), {
+                    name: name,
+                    category: category,
+                    price: Number(price),
+                    discount: Number(discount)
+                });
+
+                alert("Produk berhasil ditambahkan!");
+                document.getElementById("prod-name").value = "";
+                document.getElementById("prod-price").value = "";
+                document.getElementById("prod-discount").value = "";
+            } catch(e) {
+                alert("Gagal menambah produk: " + e.message);
+            }
+        };
+
+        window.updateStatus = async function(id, newStatus) {
+            await updateDoc(doc(db, "orders", id), { status: newStatus });
+        };
+
+        window.deleteOrder = async function(id) {
+            if(confirm("Hapus pesanan " + id + "?")) await deleteDoc(doc(db, "orders", id));
+        };
+
+        window.deleteProduct = async function(id) {
+            if(confirm("Hapus produk ini dari toko?")) await deleteDoc(doc(db, "products", id));
+        };
+    </script>
+</head>
+<body>
+
+    <!-- SCREEN LOGIN PIN -->
+    <div id="login-screen">
+        <div class="login-card">
+            <h3>🔒 Area Khusus Admin</h3>
+            <p>Masukkan PIN Rahasia untuk Membuka Dashboard</p>
+            <input type="password" id="pin-input" placeholder="Masukkan PIN" maxlength="10">
+            <button onclick="checkPIN()" class="btn-login">Masuk Admin</button>
+            <br>
+            <a href="index.html" class="btn-back-home">← Kembali ke Toko Utama</a>
+        </div>
+    </div>
+
+    <!-- CONTENT DASHBOARD ADMIN UTAMA -->
+    <div id="admin-content">
+        <header>
+            <h2>⚙️ Dashboard Admin ZenStore</h2>
+            <div class="header-btns">
+                <a href="index.html" class="btn-secondary">← Ke Web Utama</a>
+                <button onclick="location.reload()" class="btn-action btn-danger">Keluar / Lock</button>
+            </div>
+        </header>
+
+        <!-- FORM TAMBAH PRODUK & DISKON -->
+        <div class="card-box">
+            <div class="card-title">➕ Tambah / Kelola Produk & Diskon Baru</div>
+            <div class="form-grid">
+                <input type="text" id="prod-name" placeholder="Nama Produk (Misal: 100 Robux)">
+                <select id="prod-category">
+                    <option value="Mobile Legends">Mobile Legends</option>
+                    <option value="Roblox">Roblox</option>
+                    <option value="Game Lainnya">Game Lainnya</option>
+                    <option value="Aplikasi Premium">Aplikasi Premium</option>
+                </select>
+                <input type="number" id="prod-price" placeholder="Harga Normal (Rp)">
+                <input type="number" id="prod-discount" placeholder="Diskon (%) Contoh: 10">
+            </div>
+            <button onclick="saveProduct()" class="btn-add">+ Simpan Produk ke Web</button>
+        </div>
+
+        <!-- TABEL PRODUK AKTIF -->
+        <div class="card-title" style="margin-bottom:8px;">📋 Daftar Produk Kustom Ditambahkan</div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nama Produk</th>
+                        <th>Kategori</th>
+                        <th>Harga Normal</th>
+                        <th>Diskon</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="product-list">
+                    <!-- Produk muncul otomatis di sini -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- TABEL PESANAN MASUK -->
+        <div class="card-title" style="margin-bottom:8px;">🛒 Daftar Pesanan Masuk Pembeli</div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>No. Invoice</th>
+                        <th>Produk & Harga</th>
+                        <th>Data Akun / User ID</th>
+                        <th>Pembayaran</th>
+                        <th>Status</th>
+                        <th>Waktu Pesan</th>
+                        <th>Aksi Admin</th>
+                    </tr>
+                </thead>
+                <tbody id="order-list">
+                    <!-- Pesanan masuk otomatis di sini -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>
